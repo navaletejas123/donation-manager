@@ -39,8 +39,13 @@ function createTables() {
             date TEXT NOT NULL,
             title TEXT NOT NULL,
             amount REAL NOT NULL,
-            description TEXT
-        )`);
+            description TEXT,
+            payment_method TEXT DEFAULT 'Offline',
+            transaction_id TEXT
+        )`, () => {
+             db.run("ALTER TABLE expenses ADD COLUMN payment_method TEXT DEFAULT 'Offline'", () => {});
+             db.run("ALTER TABLE expenses ADD COLUMN transaction_id TEXT", () => {});
+        });
     });
 }
 
@@ -131,7 +136,7 @@ const dbManager = {
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
                 WHERE don.name = ?
-                ORDER BY d.date DESC
+                ORDER BY d.date DESC, d.id DESC
             `;
             const donations = await allQuery(sql, [name]);
 
@@ -174,8 +179,8 @@ const dbManager = {
 
     addExpense: async (data) => {
         try {
-            const sql = `INSERT INTO expenses (date, title, amount, description) VALUES (?, ?, ?, ?)`;
-            await runQuery(sql, [data.date, data.title, data.amount, data.description]);
+            const sql = `INSERT INTO expenses (date, title, amount, description, payment_method, transaction_id) VALUES (?, ?, ?, ?, ?, ?)`;
+            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null]);
             return { success: true };
         } catch (error) {
             console.error('Error adding expense:', error);
@@ -185,7 +190,7 @@ const dbManager = {
 
     getAllExpenses: async () => {
         try {
-            const sql = `SELECT * FROM expenses ORDER BY date DESC`;
+            const sql = `SELECT * FROM expenses ORDER BY date DESC, id DESC`;
             const expenses = await allQuery(sql);
             return { success: true, expenses };
         } catch (error) {
@@ -196,8 +201,8 @@ const dbManager = {
 
     updateExpense: async (data) => {
         try {
-            const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ? WHERE id = ?`;
-            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.id]);
+            const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ? WHERE id = ?`;
+            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.id]);
             return { success: true };
         } catch (error) {
             console.error('Error updating expense:', error);
@@ -211,7 +216,7 @@ const dbManager = {
                 SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.pending_amount, d.cleared_date, don.name as donor_name
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
-                ORDER BY d.date DESC
+                ORDER BY d.date DESC, d.id DESC
             `;
             const donations = await allQuery(sql);
             return { success: true, donations };

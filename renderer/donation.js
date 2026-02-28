@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Editing
                 result = await window.api.updateDonation(data);
                 if (result.success) {
-                    alert('Donation updated successfully!');
+                    window.showToast('Donation updated successfully!', 'success');
                     resetForm();
                     switchToHistory(); // Return back to history view if edited from there
                 }
@@ -112,13 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Adding
                 result = await window.api.addDonation(data);
                 if (result.success) {
-                    alert('Donation added successfully!');
+                    window.showToast('Donation added successfully!', 'success');
                     resetForm();
                 }
             }
 
             if (!result.success) {
-                alert('Error: ' + result.error);
+                window.showToast('Error: ' + result.error, 'error');
             }
             
             // Refresh dashboards if applicable
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (err) {
             console.error(err);
-            alert('An error occurred.');
+            window.showToast('An error occurred while saving the donation.', 'error');
         }
     });
 
@@ -204,4 +204,20 @@ document.addEventListener('DOMContentLoaded', () => {
             transactionInput.removeAttribute('required');
         }
     };
+    
+    // Feature 13: Add enter key feature to all buttons globally
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const activeElem = document.activeElement;
+            // If the active element is a button, or has role='button', trigger click.
+            // (Natively buttons do this, but just to ensure all styled components act this way)
+            if (activeElem && (activeElem.tagName === 'BUTTON' || activeElem.classList.contains('btn-primary') || activeElem.classList.contains('btn-secondary') || activeElem.classList.contains('nav-btn'))) {
+                // Prevent default form submit if it's not a submit button to avoid double firing
+                if (activeElem.type !== 'submit') {
+                    e.preventDefault();
+                    activeElem.click();
+                }
+            }
+        }
+    });
 });
