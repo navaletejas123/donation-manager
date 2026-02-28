@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
     updateExpense: (data) => ipcRenderer.invoke('update-expense', data),
     getPending: () => ipcRenderer.invoke('get-pending'),
     getAllDonations: () => ipcRenderer.invoke('get-all-donations'),
-    completePendingDonation: (id, date) => ipcRenderer.invoke('complete-pending-donation', id, date),
-    completePendingDonor: (donorName, date) => ipcRenderer.invoke('complete-pending-donor', donorName, date)
+    payPendingDonation: (data) => ipcRenderer.invoke('pay-pending-donation', data),
+    payPendingDonor: (data) => ipcRenderer.invoke('pay-pending-donor', data),
+    getPendingPayments: (donationId) => ipcRenderer.invoke('get-pending-payments', donationId),
+    deleteDonation: (id) => ipcRenderer.invoke('delete-donation', id)
 });

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             const targetId = btn.getAttribute('data-target');
             document.getElementById(targetId).classList.add('active');
+            sessionStorage.setItem('activeSection', targetId);
 
             // Trigger specific refreshes based on section
             if (targetId === 'dashboard-section' && window.refreshDashboard) {
@@ -28,7 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initialize application data
-    if (window.refreshDashboard) window.refreshDashboard();
+    const savedSection = sessionStorage.getItem('activeSection');
+    if (savedSection) {
+        const savedBtn = document.querySelector(`.nav-btn[data-target="${savedSection}"]`);
+        if (savedBtn) {
+            savedBtn.click();
+        } else if (window.refreshDashboard) {
+            window.refreshDashboard();
+        }
+    } else if (window.refreshDashboard) {
+        window.refreshDashboard();
+    }
 });
 
 // --- GLOBAL UI HELPERS ---

@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
     const transactionGroup = document.getElementById('transaction-id-group');
     const transactionInput = document.getElementById('transaction-id');
+    const amountInput = document.getElementById('donation-amount');
+    const pendingAmountInput = document.getElementById('pending-amount');
     
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const formTitle = document.getElementById('donation-form-title');
@@ -78,6 +80,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    amountInput.addEventListener('input', (e) => {
+        const originalTotalStr = amountInput.dataset.originalTotal;
+        if (originalTotalStr) {
+            const originalTotal = parseFloat(originalTotalStr);
+            const currentAmount = parseFloat(amountInput.value) || 0;
+            const newPending = Math.max(0, originalTotal - currentAmount);
+            pendingAmountInput.value = newPending.toFixed(2);
+        }
+    });
+
     // Form Submit Logic
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -106,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (result.success) {
                     window.showToast('Donation updated successfully!', 'success');
                     resetForm();
-                    switchToHistory(); // Return back to history view if edited from there
+                    switchToPreviousSection(); // Return back to previous view 
                 }
             } else {
                 // Adding
@@ -124,6 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Refresh dashboards if applicable
             if (window.refreshDashboard) window.refreshDashboard();
             if (window.refreshPending) window.refreshPending();
+            if (window.refreshAllDonations) window.refreshAllDonations();
+            if (window.refreshCurrentHistory) window.refreshCurrentHistory();
             
         } catch (err) {
             console.error(err);
@@ -133,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cancelEditBtn.addEventListener('click', () => {
         resetForm();
-        switchToHistory();
+        switchToPreviousSection();
     });
 
     function resetForm() {
@@ -150,7 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
         transactionGroup.style.display = 'none';
         transactionInput.removeAttribute('required');
         
-        document.getElementById('pending-amount').removeAttribute('readonly');
+        pendingAmountInput.removeAttribute('readonly');
+        amountInput.removeAttribute('data-original-total');
         
         autocompleteList.innerHTML = '';
         
@@ -158,14 +173,22 @@ document.addEventListener('DOMContentLoaded', () => {
         categorySelect.value = "";
     }
 
-    function switchToHistory() {
-        document.querySelector('.nav-btn[data-target="history-section"]').click();
+    function switchToPreviousSection() {
+        // Go back to wherever we came from before opening the edit form
+        const prev = sessionStorage.getItem('sectionBeforeEdit') || 'all-donations-section';
+        sessionStorage.removeItem('sectionBeforeEdit');
+        const btn = document.querySelector(`.nav-btn[data-target="${prev}"]`);
+        if (btn) btn.click();
     }
 
     // Expose edit function globally for history.js
     window.editDonation = (donationData, donorName) => {
+        // Save the current section so we can return after editing
+        const currentSection = sessionStorage.getItem('activeSection') || 'all-donations-section';
+        sessionStorage.setItem('sectionBeforeEdit', currentSection);
         // Switch to add donation tab
         document.querySelector('.nav-btn[data-target="donation-section"]').click();
+
         
         // Populate form
         formTitle.textContent = 'Edit Donation';
@@ -177,9 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
         donorNameInput.setAttribute('readonly', 'true'); // Prevents changing donor during edit per specs usually
         
         document.getElementById('donation-date').value = donationData.date;
-        document.getElementById('donation-amount').value = donationData.amount;
-        document.getElementById('pending-amount').value = donationData.pending_amount;
-        document.getElementById('pending-amount').setAttribute('readonly', 'true'); // Do not allow manual clearing via edit
+        amountInput.value = donationData.amount;
+        pendingAmountInput.value = donationData.pending_amount;
+        pendingAmountInput.setAttribute('readonly', 'true'); // Do not allow manual clearing via edit
+
+        const originalTotal = (parseFloat(donationData.amount) || 0) + (parseFloat(donationData.pending_amount) || 0);
+        amountInput.dataset.originalTotal = originalTotal;
 
         // Category
         if (donationData.category === 'Pratham Abhishek' || donationData.category === 'Shanti Dhara') {

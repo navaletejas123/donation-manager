@@ -46,6 +46,17 @@ function createTables() {
              db.run("ALTER TABLE expenses ADD COLUMN payment_method TEXT DEFAULT 'Offline'", () => {});
              db.run("ALTER TABLE expenses ADD COLUMN transaction_id TEXT", () => {});
         });
+
+        // Stores individual payment history per donation when clearing pending
+        db.run(`CREATE TABLE IF NOT EXISTS pending_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            donation_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            amount_paid REAL NOT NULL,
+            payment_method TEXT NOT NULL,
+            transaction_id TEXT,
+            FOREIGN KEY(donation_id) REFERENCES donations(id)
+        )`);
     });
 }
 
@@ -226,26 +237,31 @@ const dbManager = {
         }
     },
 
-    completePendingDonation: async (id, completeDate) => {
+    payPendingDonation: async (data) => {
         try {
             const donation = await getQuery(`
                 SELECT d.*, don.name as donor_name 
                 FROM donations d 
                 JOIN donors don ON d.donor_id = don.id 
                 WHERE d.id = ?
-            `, [id]);
+            `, [data.id]);
             
             if (donation && donation.pending_amount > 0) {
-                const insertSql = `
-                    INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, pending_amount, cleared_date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `;
-                const newCategory = donation.category + ' (Pending Cleared)';
-                await runQuery(insertSql, [
-                    donation.donor_id, completeDate, newCategory, donation.pending_amount, donation.payment_method, donation.transaction_id, 0, completeDate
-                ]);
-                
-                await runQuery(`UPDATE donations SET pending_amount = 0, cleared_date = ? WHERE id = ?`, [completeDate, id]);
+                const amountToClear = Math.min(data.amountPaid, donation.pending_amount);
+                const remainingPending = parseFloat((donation.pending_amount - amountToClear).toFixed(2));
+
+                // Store in payment history table (no new donation row)
+                await runQuery(
+                    `INSERT INTO pending_payments (donation_id, date, amount_paid, payment_method, transaction_id) VALUES (?, ?, ?, ?, ?)`,
+                    [donation.id, data.date, amountToClear, data.paymentMethod, data.transactionId]
+                );
+
+                // Update original donation row in-place
+                // Always update cleared_date to latest payment date
+                await runQuery(
+                    `UPDATE donations SET pending_amount = ?, cleared_date = ? WHERE id = ?`,
+                    [remainingPending, data.date, data.id]
+                );
                 return { success: true };
             } else {
                  return { success: false, error: 'No pending amount found or invalid donation.' };
@@ -256,27 +272,39 @@ const dbManager = {
         }
     },
 
-    completePendingDonor: async (donorName, completeDate) => {
+    payPendingDonor: async (data) => {
         try {
              const sql = `
                 SELECT d.* 
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
                 WHERE don.name = ? AND d.pending_amount > 0
+                ORDER BY d.date ASC, d.id ASC
             `;
-            const pendingDonations = await allQuery(sql, [donorName]);
+            const pendingDonations = await allQuery(sql, [data.donorName]);
             
+            let remainingToPay = data.amountPaid;
+
             for(let donation of pendingDonations) {
-                 const insertSql = `
-                    INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, pending_amount, cleared_date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `;
-                const newCategory = donation.category + ' (Pending Cleared)';
-                await runQuery(insertSql, [
-                    donation.donor_id, completeDate, newCategory, donation.pending_amount, donation.payment_method, donation.transaction_id, 0, completeDate
-                ]);
+                if (remainingToPay <= 0) break;
+
+                const amountToClear = Math.min(remainingToPay, donation.pending_amount);
+                const remainingPending = parseFloat((donation.pending_amount - amountToClear).toFixed(2));
+
+                // Store in payment history table (no new donation row)
+                await runQuery(
+                    `INSERT INTO pending_payments (donation_id, date, amount_paid, payment_method, transaction_id) VALUES (?, ?, ?, ?, ?)`,
+                    [donation.id, data.date, amountToClear, data.paymentMethod, data.transactionId]
+                );
+
+                // Update original donation row in-place
+                // Always update cleared_date to latest payment date
+                await runQuery(
+                    `UPDATE donations SET pending_amount = ?, cleared_date = ? WHERE id = ?`,
+                    [remainingPending, data.date, donation.id]
+                );
                 
-                await runQuery(`UPDATE donations SET pending_amount = 0, cleared_date = ? WHERE id = ?`, [completeDate, donation.id]);
+                remainingToPay -= amountToClear;
             }
             return { success: true };
         } catch (error) {
@@ -299,6 +327,29 @@ const dbManager = {
             return { success: true, pendingList };
         } catch (error) {
             console.error('Error fetching pending amounts:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    getPendingPayments: async (donationId) => {
+        try {
+            const sql = `SELECT * FROM pending_payments WHERE donation_id = ? ORDER BY date ASC, id ASC`;
+            const payments = await allQuery(sql, [donationId]);
+            return { success: true, payments };
+        } catch (error) {
+            console.error('Error fetching pending payments:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    deleteDonation: async (id) => {
+        try {
+            // Remove pending payment history first (FK)
+            await runQuery(`DELETE FROM pending_payments WHERE donation_id = ?`, [id]);
+            await runQuery(`DELETE FROM donations WHERE id = ?`, [id]);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting donation:', error);
             return { success: false, error: error.message };
         }
     }

@@ -1,5 +1,3 @@
-// history.js
-
 const formatHistoryCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
@@ -7,7 +5,125 @@ const formatHistoryCurrency = (amount) => {
     }).format(amount);
 };
 
+// ---- Pay-Pending Modal setup ----
+function setupPayPendingModal() {
+    const modal = document.getElementById('pay-pending-modal');
+    const closeBtn = document.getElementById('close-pay-pending-modal');
+    const form = document.getElementById('pay-pending-form');
+    const txGroup = document.getElementById('pay-pending-transaction-group');
+    const txInput = document.getElementById('pay-pending-transaction-id');
+
+    // Payment method toggle
+    const paymentRadios = form.querySelectorAll('input[name="pay_pending_payment_method"]');
+    paymentRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'Online') {
+                txGroup.style.display = 'block';
+                txInput.setAttribute('required', 'true');
+            } else {
+                txGroup.style.display = 'none';
+                txInput.removeAttribute('required');
+                txInput.value = '';
+            }
+        });
+    });
+
+    // Close modal on X click or outside click
+    closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    });
+}
+
+/**
+ * Opens the pay-pending modal and resolves with the submitted data.
+ * @param {string} title - Modal title
+ * @param {number} maxAmount - Maximum allowed payment
+ * @returns {Promise<{amountPaid, date, paymentMethod, transactionId}|null>}
+ */
+function openPayPendingModal(title, maxAmount) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('pay-pending-modal');
+        const titleEl = document.getElementById('pay-pending-modal-title');
+
+        // Show title and open modal first
+        titleEl.textContent = title;
+        modal.style.display = 'block';
+
+        // --- Clone form to remove any stale listeners ---
+        const oldForm = document.getElementById('pay-pending-form');
+        const newForm = oldForm.cloneNode(true);
+        oldForm.parentNode.replaceChild(newForm, oldForm);
+
+        // Now grab references from the LIVE new form
+        const amountInput  = document.getElementById('pay-pending-amount');
+        const dateInput    = document.getElementById('pay-pending-date');
+        const hintEl       = document.getElementById('pay-pending-max-hint');
+        const txGroup      = document.getElementById('pay-pending-transaction-group');
+        const txInput      = document.getElementById('pay-pending-transaction-id');
+
+        // Reset & pre-fill
+        newForm.reset();
+        txGroup.style.display = 'none';
+        txInput.removeAttribute('required');
+        txInput.value = '';
+        amountInput.max  = maxAmount;
+        amountInput.value = '';
+        dateInput.value  = '';
+        hintEl.textContent = `Max: ${formatHistoryCurrency(maxAmount)}`;
+
+        // Payment method toggle
+        newForm.querySelectorAll('input[name="pay_pending_payment_method"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'Online') {
+                    txGroup.style.display = 'block';
+                    txInput.setAttribute('required', 'true');
+                } else {
+                    txGroup.style.display = 'none';
+                    txInput.removeAttribute('required');
+                    txInput.value = '';
+                }
+            });
+        });
+
+        // Submit handler — all reads from live in-DOM elements
+        const onSubmit = (e) => {
+            e.preventDefault();
+            const amountPaid = parseFloat(amountInput.value);
+            if (!amountPaid || amountPaid <= 0 || amountPaid > maxAmount) {
+                window.showToast(`Amount must be between ₹1 and ${formatHistoryCurrency(maxAmount)}.`, 'error');
+                return;
+            }
+            const paymentMethod = newForm.querySelector('input[name="pay_pending_payment_method"]:checked').value;
+            const transactionId = txInput.value.trim();
+            if (paymentMethod === 'Online' && !transactionId) {
+                window.showToast('Please enter a Transaction ID for online payments.', 'error');
+                return;
+            }
+            const date = dateInput.value;
+            if (!date) {
+                window.showToast('Please select a date.', 'error');
+                return;
+            }
+            newForm.removeEventListener('submit', onSubmit);
+            modal.style.display = 'none';
+            resolve({ amountPaid, date, paymentMethod, transactionId: transactionId || null });
+        };
+        newForm.addEventListener('submit', onSubmit);
+
+        // Close button
+        const closeBtn = document.getElementById('close-pay-pending-modal');
+        closeBtn.onclick = () => {
+            newForm.removeEventListener('submit', onSubmit);
+            modal.style.display = 'none';
+            resolve(null);
+        };
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    setupPayPendingModal();
+
     const searchBtn = document.getElementById('view-history-btn');
     const searchInput = document.getElementById('history-search-name');
     const historyTableBody = document.querySelector('#history-table tbody');
@@ -45,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     li.addEventListener('click', () => {
                         searchInput.value = donor.name;
                         autolist.innerHTML = '';
+                        searchBtn.click(); // Auto-trigger search when selecting from autocomplete
                     });
                     autolist.appendChild(li);
                 });
@@ -94,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${isPending ? `<span class="badge-pending">${formatHistoryCurrency(d.pending_amount)}</span>` : formatHistoryCurrency(d.pending_amount)}
                         </td>
                         <td>
-                            ${isPending ? `<input type="date" class="clear-date-input" title="Clear Date">` : (d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : '-')}
+                            ${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : '-'}
                         </td>
                         <td>
                             <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 5px;">View</button>
@@ -104,7 +221,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
 
                     // View listener
-                    tr.querySelector('.view-btn').addEventListener('click', () => {
+                    tr.querySelector('.view-btn').addEventListener('click', async () => {
+                        const pymtData = await window.api.getPendingPayments(d.id);
+                        let paymentHistoryHtml = '';
+                        if (pymtData.success && pymtData.payments.length > 0) {
+                            const rows = pymtData.payments.map((p, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${window.formatDateDDMMYYYY(p.date)}</td>
+                                    <td>${formatHistoryCurrency(p.amount_paid)}</td>
+                                    <td>${p.payment_method}${p.transaction_id ? ' (' + p.transaction_id + ')' : ''}</td>
+                                </tr>`).join('');
+                            paymentHistoryHtml = `
+                                <h4 style="margin-top:15px; border-top:1px solid #eee; padding-top:10px; color:var(--secondary-blue);">Payment History</h4>
+                                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                                    <thead><tr style="background:#f0f4ff;">
+                                        <th style="padding:5px 8px; text-align:left;">#</th>
+                                        <th style="padding:5px 8px; text-align:left;">Date</th>
+                                        <th style="padding:5px 8px; text-align:left;">Amount Paid</th>
+                                        <th style="padding:5px 8px; text-align:left;">Method</th>
+                                    </tr></thead>
+                                    <tbody>${rows}</tbody>
+                                </table>`;
+                        }
                         const html = `
                             <p><strong>Donor:</strong> ${name}</p>
                             <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
@@ -112,10 +251,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Amount:</strong> ${formatHistoryCurrency(d.amount)}</p>
                             <p><strong>Payment Method:</strong> ${d.payment_method} ${d.transaction_id ? `(${d.transaction_id})` : ''}</p>
                             <p><strong>Pending Amount:</strong> ${formatHistoryCurrency(d.pending_amount)}</p>
-                            <p><strong>Cleared Date:</strong> ${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : 'N/A'}</p>
+                            <p><strong>Last Cleared Date:</strong> ${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : 'N/A'}</p>
+                            ${paymentHistoryHtml}
                         `;
                         window.showViewModal('Donation Details', html);
                     });
+
 
                     // Add edit listener
                     tr.querySelector('.edit-btn').addEventListener('click', () => {
@@ -127,22 +268,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add clear pending listener
                     if (isPending) {
                         tr.querySelector('.clear-pending-btn').addEventListener('click', async () => {
-                             const dateInput = tr.querySelector('.clear-date-input').value;
-                             if (!dateInput) {
-                                 window.showToast("Please select a date to clear pending amount.", "error");
-                                 return;
-                             }
-                             
-                             if (confirm(`Are you sure you want to clear ${formatHistoryCurrency(d.pending_amount)} pending amount on ${dateInput}?`)) {
-                                 const res = await window.api.completePendingDonation(d.id, dateInput);
-                                 if (res.success) {
-                                     window.showToast("Pending amount cleared successfully!", "success");
-                                     searchBtn.click(); // Refresh this history view
-                                     refreshAllDataView();
-                                 } else {
-                                     window.showToast("Failed to clear pending amount: " + res.error, "error");
-                                 }
-                             }
+                            const result = await openPayPendingModal(
+                                `Clear Pending (${d.category})`, d.pending_amount
+                            );
+                            if (!result) return;
+
+                            const res = await window.api.payPendingDonation({ id: d.id, ...result });
+                            if (res.success) {
+                                window.showToast('Pending amount cleared successfully!', 'success');
+                                searchBtn.click(); // Refresh this history view
+                                refreshAllDataView();
+                            } else {
+                                window.showToast('Failed to clear pending amount: ' + res.error, 'error');
+                            }
                         });
                     }
 
@@ -188,9 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${index}</td>
                         <td>${item.name}</td>
                         <td><span class="badge-pending">${formatHistoryCurrency(item.total_pending)}</span></td>
-                        <td>
-                            <input type="date" class="donor-clear-date-input" title="Clear Date">
-                        </td>
+                        <td>—</td>
                         <td>
                              <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 5px;">View</button>
                              <button class="btn-primary clear-donor-btn" style="padding: 5px 10px; font-size: 13px;">Clear Total Pending</button>
@@ -209,22 +345,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Add clear pending for donor
                     tr.querySelector('.clear-donor-btn').addEventListener('click', async () => {
-                         const dateInput = tr.querySelector('.donor-clear-date-input').value;
-                         if (!dateInput) {
-                             window.showToast("Please select a date to clear this donor's pending amount.", "error");
-                             return;
-                         }
-                         
-                         if (confirm(`Are you sure you want to clear the entire ${formatHistoryCurrency(item.total_pending)} pending amount for ${item.name} on ${dateInput}?`)) {
-                             const res = await window.api.completePendingDonor(item.name, dateInput);
-                             if (res.success) {
-                                 window.showToast(`All pending amounts for ${item.name} cleared successfully!`, "success");
-                                 window.refreshPending();
-                                 refreshAllDataView();
-                             } else {
-                                 window.showToast("Failed to clear pending amounts: " + res.error, "error");
-                             }
-                         }
+                        const result = await openPayPendingModal(
+                            `Clear Pending for ${item.name}`, item.total_pending
+                        );
+                        if (!result) return;
+
+                        const res = await window.api.payPendingDonor({ donorName: item.name, ...result });
+                        if (res.success) {
+                            window.showToast(`Pending amount for ${item.name} cleared successfully!`, 'success');
+                            window.refreshPending();
+                            refreshAllDataView();
+                        } else {
+                            window.showToast('Failed to clear pending amounts: ' + res.error, 'error');
+                        }
                     });
 
                     tbody.appendChild(tr);
@@ -245,6 +378,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load Pending on start
     window.refreshPending();
+
+    // Expose refresh so donation.js can call it after edit
+    window.refreshCurrentHistory = () => {
+        const name = searchInput.value.trim();
+        if (name) searchBtn.click();
+    };
 
     // Global refresh helper to re-sync everything when payments are cleared
     function refreshAllDataView() {

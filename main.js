@@ -74,10 +74,18 @@ ipcMain.handle('get-all-donations', async (event) => {
     return await dbManager.getAllDonations();
 });
 
-ipcMain.handle('complete-pending-donation', async (event, id, date) => {
-    return await dbManager.completePendingDonation(id, date);
+ipcMain.handle('pay-pending-donation', async (event, data) => {
+    return await dbManager.payPendingDonation(data);
 });
 
-ipcMain.handle('complete-pending-donor', async (event, donorName, date) => {
-    return await dbManager.completePendingDonor(donorName, date);
+ipcMain.handle('pay-pending-donor', async (event, data) => {
+    return await dbManager.payPendingDonor(data);
+});
+
+ipcMain.handle('get-pending-payments', async (event, donationId) => {
+    return await dbManager.getPendingPayments(donationId);
+});
+
+ipcMain.handle('delete-donation', async (event, id) => {
+    return await dbManager.deleteDonation(id);
 });
