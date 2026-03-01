@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +8,13 @@
     <!-- We will use local chart.js in the scripts, but for UI icons we can use an external stylesheet or simple text -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo-container">
-                <h2>Royal Donation</h2>
-                <p>Management System</p>
+                <h3>Donation Management System</h3>
             </div>
             <nav class="nav-links">
                 <button class="nav-btn active" data-target="dashboard-section">Dashboard</button>
@@ -32,15 +33,21 @@
                 <header class="section-header">
                     <h1>Dashboard</h1>
                 </header>
-                
+
                 <div class="summary-cards">
                     <div class="card cash-in">
                         <h3>Total Donations</h3>
                         <p id="total-cash-in" class="amount">₹0.00</p>
                     </div>
+
                     <div class="card total-pending">
                         <h3>Total Pending</h3>
                         <p id="dashboard-total-pending" class="amount">₹0.00</p>
+                    </div>
+
+                    <div class="card total-expense">
+                        <h3>Total Expense</h3>
+                        <p id="total-expense" class="amount">₹0.00</p>
                     </div>
                 </div>
 
@@ -61,10 +68,11 @@
                 <div class="form-container">
                     <form id="donation-form">
                         <input type="hidden" id="donation-id">
-                        
+
                         <div class="form-group autocomplete-container">
                             <label for="donor-name">Donor Name *</label>
-                            <input type="text" id="donor-name" required autocomplete="off" placeholder="Start typing name...">
+                            <input type="text" id="donor-name" required autocomplete="off"
+                                placeholder="Start typing name...">
                             <ul id="autocomplete-list" class="autocomplete-items"></ul>
                         </div>
 
@@ -81,7 +89,8 @@
                                     <option value="Shanti Dhara">Shanti Dhara</option>
                                     <option value="Other">Other (Custom)</option>
                                 </select>
-                                <input type="text" id="custom-category" placeholder="Enter custom category" style="display:none; margin-top:10px;">
+                                <input type="text" id="custom-category" placeholder="Enter custom category"
+                                    style="display:none; margin-top:10px;">
                             </div>
                         </div>
 
@@ -99,7 +108,8 @@
                         <div class="form-group payment-method-group">
                             <label>Payment Method *</label>
                             <div class="radio-group">
-                                <label><input type="radio" name="payment_method" value="Offline" checked> Offline</label>
+                                <label><input type="radio" name="payment_method" value="Offline" checked>
+                                    Offline</label>
                                 <label><input type="radio" name="payment_method" value="Online"> Online</label>
                             </div>
                         </div>
@@ -111,7 +121,8 @@
 
                         <div class="form-actions">
                             <button type="submit" class="btn-primary">Save Donation</button>
-                            <button type="button" class="btn-secondary" id="cancel-edit-btn" style="display:none;">Cancel Edit</button>
+                            <button type="button" class="btn-secondary" id="cancel-edit-btn"
+                                style="display:none;">Cancel Edit</button>
                         </div>
                     </form>
                 </div>
@@ -122,7 +133,7 @@
                 <header class="section-header">
                     <h1>All Donations</h1>
                 </header>
-                
+
                 <div class="summary-cards" style="margin-bottom: 20px;">
                     <div class="card cash-in" style="padding: 15px;">
                         <h3 style="margin-bottom: 5px;">Total Paid</h3>
@@ -133,7 +144,7 @@
                         <p id="all-donations-total-pending" class="amount" style="font-size: 22px;">₹0.00</p>
                     </div>
                 </div>
-                
+
                 <div class="table-container">
                     <table id="all-donations-table">
                         <thead>
@@ -161,7 +172,7 @@
                 <header class="section-header">
                     <h1>Donor History</h1>
                 </header>
-                
+
                 <div class="search-bar">
                     <input type="text" id="history-search-name" placeholder="Enter donor name to view history...">
                     <button id="view-history-btn" class="btn-primary">View History</button>
@@ -191,7 +202,9 @@
                         </thead>
                         <tbody>
                             <!-- Data injected via JS -->
-                            <tr><td colspan="6" class="text-center">Search for a donor to view history.</td></tr>
+                            <tr>
+                                <td colspan="6" class="text-center">Search for a donor to view history.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -255,8 +268,10 @@
                             <div class="form-group payment-method-group">
                                 <label>Payment Method *</label>
                                 <div class="radio-group" style="margin-top: 10px;">
-                                    <label><input type="radio" name="expense_payment_method" value="Offline" checked> Cash</label>
-                                    <label><input type="radio" name="expense_payment_method" value="Online"> Online</label>
+                                    <label><input type="radio" name="expense_payment_method" value="Offline" checked>
+                                        Cash</label>
+                                    <label><input type="radio" name="expense_payment_method" value="Online">
+                                        Online</label>
                                 </div>
                             </div>
                         </div>
@@ -273,7 +288,8 @@
 
                         <div class="form-actions">
                             <button type="submit" class="btn-primary" id="expense-submit-btn">Save Expense</button>
-                            <button type="button" class="btn-secondary" id="cancel-expense-edit-btn" style="display:none;">Cancel Edit</button>
+                            <button type="button" class="btn-secondary" id="cancel-expense-edit-btn"
+                                style="display:none;">Cancel Edit</button>
                         </div>
                     </form>
                 </div>
@@ -301,8 +317,11 @@
             <!-- Pay Pending Modal -->
             <div id="pay-pending-modal" class="modal" style="display: none;">
                 <div class="modal-content" style="max-width: 400px; position: relative;">
-                    <span class="close-modal" id="close-pay-pending-modal" style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
-                    <h2 id="pay-pending-modal-title" style="color: var(--secondary-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px; margin-bottom: 15px;">Clear Pending Amount</h2>
+                    <span class="close-modal" id="close-pay-pending-modal"
+                        style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
+                    <h2 id="pay-pending-modal-title"
+                        style="color: var(--secondary-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px; margin-bottom: 15px;">
+                        Clear Pending Amount</h2>
                     <form id="pay-pending-form">
                         <div class="form-group">
                             <label for="pay-pending-amount">Amount to Pay *</label>
@@ -316,8 +335,10 @@
                         <div class="form-group payment-method-group">
                             <label>Payment Method *</label>
                             <div class="radio-group" style="margin-top: 10px;">
-                                <label><input type="radio" name="pay_pending_payment_method" value="Offline" checked> Offline</label>
-                                <label><input type="radio" name="pay_pending_payment_method" value="Online"> Online</label>
+                                <label><input type="radio" name="pay_pending_payment_method" value="Offline" checked>
+                                    Offline</label>
+                                <label><input type="radio" name="pay_pending_payment_method" value="Online">
+                                    Online</label>
                             </div>
                         </div>
                         <div class="form-group" id="pay-pending-transaction-group" style="display: none;">
@@ -325,7 +346,8 @@
                             <input type="text" id="pay-pending-transaction-id">
                         </div>
                         <div class="form-actions" style="margin-top: 20px;">
-                            <button type="submit" class="btn-primary" id="pay-pending-submit-btn">Confirm Payment</button>
+                            <button type="submit" class="btn-primary" id="pay-pending-submit-btn">Confirm
+                                Payment</button>
                         </div>
                     </form>
                 </div>
@@ -334,17 +356,25 @@
             <!-- Delete Password Modal -->
             <div id="delete-password-modal" class="modal" style="display: none;">
                 <div class="modal-content" style="max-width: 360px; position: relative; text-align: center;">
-                    <span class="close-modal" id="close-delete-modal" style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
-                    <h2 style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; margin-bottom: 15px;">🔒 Delete Donation</h2>
-                    <p style="color: #666; margin-bottom: 15px;">This action is permanent. Enter the admin password to confirm.</p>
+                    <span class="close-modal" id="close-delete-modal"
+                        style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
+                    <h2
+                        style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; margin-bottom: 15px;">
+                        🔒 Delete Donation</h2>
+                    <p style="color: #666; margin-bottom: 15px;">This action is permanent. Enter the admin password to
+                        confirm.</p>
                     <form id="delete-password-form">
                         <div class="form-group" style="text-align: left;">
                             <label for="delete-password-input">Password *</label>
-                            <input type="password" id="delete-password-input" placeholder="Enter password" required autocomplete="off">
+                            <input type="password" id="delete-password-input" placeholder="Enter password" required
+                                autocomplete="off">
                         </div>
-                        <p id="delete-password-error" style="color:#e53e3e; font-size:13px; display:none; margin-top:5px;">Incorrect password. Try again.</p>
+                        <p id="delete-password-error"
+                            style="color:#e53e3e; font-size:13px; display:none; margin-top:5px;">Incorrect password. Try
+                            again.</p>
                         <div class="form-actions" style="margin-top: 15px;">
-                            <button type="submit" class="btn-primary" style="background: #e53e3e;">Confirm Delete</button>
+                            <button type="submit" class="btn-primary" style="background: #e53e3e;">Confirm
+                                Delete</button>
                         </div>
                     </form>
                 </div>
@@ -361,4 +391,5 @@
     <script src="history.js"></script>
     <script src="expense.js"></script>
 </body>
+
 </html>
