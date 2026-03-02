@@ -1,395 +1,459 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Donation Management System</title>
-    <!-- We will use local chart.js in the scripts, but for UI icons we can use an external stylesheet or simple text -->
-    <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="logo-container">
-                <h3>Donation Management System</h3>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Donation Management System</title>
+        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
+    </head>
+    <body>
+        <!-- Custom Title Bar - This should be at the top level, outside app-container -->
+        <div class="custom-titlebar">
+            <div class="window-controls">
+                <button id="min-btn" class="control-btn minimize">
+                    <i class="bi bi-dash"></i>
+                </button>
+                <button id="max-btn" class="control-btn maximize">
+                    <i class="bi bi-app"></i>
+                </button>
+                <button id="close-btn" class="control-btn close">
+                    <i class="bi bi-x"></i>
+                </button>
             </div>
-            <nav class="nav-links">
-                <button class="nav-btn active" data-target="dashboard-section">Dashboard</button>
-                <button class="nav-btn" data-target="donation-section">Add Donation</button>
-                <button class="nav-btn" data-target="all-donations-section">All Donations</button>
-                <button class="nav-btn" data-target="history-section">Donor History</button>
-                <button class="nav-btn" data-target="pending-section">Pending Amount</button>
-                <button class="nav-btn" data-target="expense-section">Expenses</button>
-            </nav>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- DASHBOARD SECTION -->
-            <section id="dashboard-section" class="content-section active">
-                <header class="section-header">
-                    <h1>Dashboard</h1>
-                </header>
-
-                <div class="summary-cards">
-                    <div class="card cash-in">
-                        <h3>Total Donations</h3>
-                        <p id="total-cash-in" class="amount">₹0.00</p>
-                    </div>
-
-                    <div class="card total-pending">
-                        <h3>Total Pending</h3>
-                        <p id="dashboard-total-pending" class="amount">₹0.00</p>
-                    </div>
-
-                    <div class="card total-expense">
-                        <h3>Total Expense</h3>
-                        <p id="total-expense" class="amount">₹0.00</p>
-                    </div>
+        </div>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="logo-container">
+                    <h3>Donation Management System</h3>
                 </div>
-
-                <div class="charts-container">
-                    <div class="chart-wrapper">
-                        <h3>Donations Analytics (Date-wise)</h3>
-                        <canvas id="mainChart"></canvas>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ADD DONATION SECTION -->
-            <section id="donation-section" class="content-section">
-                <header class="section-header">
-                    <h1 id="donation-form-title">Add Donation</h1>
-                </header>
-
-                <div class="form-container">
-                    <form id="donation-form">
-                        <input type="hidden" id="donation-id">
-
-                        <div class="form-group autocomplete-container">
-                            <label for="donor-name">Donor Name *</label>
-                            <input type="text" id="donor-name" required autocomplete="off"
-                                placeholder="Start typing name...">
-                            <ul id="autocomplete-list" class="autocomplete-items"></ul>
+                <nav class="nav-links">
+                    <button class="nav-btn active" data-target="dashboard-section">Dashboard</button>
+                    <button class="nav-btn" data-target="donation-section">Add Donation</button>
+                    <button class="nav-btn" data-target="all-donations-section">All Donations</button>
+                    <button class="nav-btn" data-target="history-section">Donor History</button>
+                    <button class="nav-btn" data-target="pending-section">Pending Amount</button>
+                    <button class="nav-btn" data-target="expense-section">Expenses</button>
+                </nav>
+            </aside>
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <!-- DASHBOARD SECTION -->
+                <section id="dashboard-section" class="content-section active">
+                    <header class="section-header">
+                        <h1>Dashboard</h1>
+                    </header>
+                    <div class="summary-cards">
+                        <div class="card cash-in">
+                            <h3>Total Donations</h3>
+                            <p id="total-cash-in" class="amount">₹0.00</p>
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="donation-date">Date *</label>
-                                <input type="date" id="donation-date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="donation-category">Category *</label>
-                                <select id="donation-category" required>
-                                    <option value="" disabled selected>Select a category</option>
-                                    <option value="Pratham Abhishek">Pratham Abhishek</option>
-                                    <option value="Shanti Dhara">Shanti Dhara</option>
-                                    <option value="Other">Other (Custom)</option>
-                                </select>
-                                <input type="text" id="custom-category" placeholder="Enter custom category"
-                                    style="display:none; margin-top:10px;">
-                            </div>
+                        <div class="card total-pending">
+                            <h3>Total Pending</h3>
+                            <p id="dashboard-total-pending" class="amount">₹0.00</p>
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="donation-amount">Amount *</label>
-                                <input type="number" id="donation-amount" min="1" step="0.01" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="pending-amount">Pending Amount</label>
-                                <input type="number" id="pending-amount" min="0" step="0.01" value="0">
-                            </div>
+                        <div class="card total-expense">
+                            <h3>Total Expense</h3>
+                            <p id="total-expense" class="amount">₹0.00</p>
                         </div>
-
-                        <div class="form-group payment-method-group">
-                            <label>Payment Method *</label>
-                            <div class="radio-group">
-                                <label><input type="radio" name="payment_method" value="Offline" checked>
-                                    Offline</label>
-                                <label><input type="radio" name="payment_method" value="Online"> Online</label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" id="transaction-id-group" style="display: none;">
-                            <label for="transaction-id">Transaction ID *</label>
-                            <input type="text" id="transaction-id">
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary">Save Donation</button>
-                            <button type="button" class="btn-secondary" id="cancel-edit-btn"
-                                style="display:none;">Cancel Edit</button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
-            <!-- ALL DONATIONS SECTION -->
-            <section id="all-donations-section" class="content-section">
-                <header class="section-header">
-                    <h1>All Donations</h1>
-                </header>
-
-                <div class="summary-cards" style="margin-bottom: 20px;">
-                    <div class="card cash-in" style="padding: 15px;">
-                        <h3 style="margin-bottom: 5px;">Total Paid</h3>
-                        <p id="all-donations-total-paid" class="amount" style="font-size: 22px;">₹0.00</p>
                     </div>
-                    <div class="card total-pending" style="padding: 15px;">
-                        <h3 style="margin-bottom: 5px;">Total Pending</h3>
-                        <p id="all-donations-total-pending" class="amount" style="font-size: 22px;">₹0.00</p>
+                    <div class="charts-container">
+                        <div class="chart-wrapper">
+                            <h3>Donations Analytics (Date-wise)</h3>
+                            <canvas id="mainChart"></canvas>
+                        </div>
                     </div>
-                </div>
-
-                <div class="table-container">
-                    <table id="all-donations-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Date</th>
-                                <th>Donor</th>
-                                <th>Category</th>
-                                <th>Amount</th>
-                                <th>Payment Method</th>
-                                <th>Pending</th>
-                                <th>Cleared Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data injected via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- DONOR HISTORY SECTION -->
-            <section id="history-section" class="content-section">
-                <header class="section-header">
-                    <h1>Donor History</h1>
-                </header>
-
-                <div class="search-bar">
-                    <input type="text" id="history-search-name" placeholder="Enter donor name to view history...">
-                    <button id="view-history-btn" class="btn-primary">View History</button>
-                </div>
-
-                <div class="history-summary" id="history-summary" style="display:none;">
-                    <h3>Donor: <span id="summary-donor-name"></span></h3>
-                    <div class="summary-stats">
-                        <div class="stat">Total Paid: <strong id="summary-total-paid">₹0.00</strong></div>
-                        <div class="stat">Total Pending: <strong id="summary-total-pending">₹0.00</strong></div>
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <table id="history-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Date</th>
-                                <th>Category</th>
-                                <th>Amount</th>
-                                <th>Payment Method</th>
-                                <th>Pending</th>
-                                <th>Clear Date (If Pending)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data injected via JS -->
-                            <tr>
-                                <td colspan="6" class="text-center">Search for a donor to view history.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- PENDING AMOUNT SECTION -->
-            <section id="pending-section" class="content-section">
-                <header class="section-header">
-                    <h1>Pending Amounts</h1>
-                </header>
-
-                <div class="summary-cards" style="margin-bottom: 20px;">
-                    <div class="card total-pending" style="padding: 15px; margin: 0 auto; max-width: 300px;">
-                        <h3 style="margin-bottom: 5px;">Overall Pending</h3>
-                        <p id="pending-section-total" class="amount" style="font-size: 22px;">₹0.00</p>
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <table id="pending-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Donor Name</th>
-                                <th>Total Pending Amount</th>
-                                <th>Clear Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data injected via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- EXPENSES SECTION -->
-            <section id="expense-section" class="content-section">
-                <header class="section-header">
-                    <h1>Add Expense</h1>
-                </header>
-
-                <div class="form-container">
-                    <form id="expense-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="expense-date">Date *</label>
-                                <input type="date" id="expense-date" required>
+                </section>
+                <!-- ADD DONATION SECTION -->
+                <section id="donation-section" class="content-section">
+                    <header class="section-header">
+                        <h1 id="donation-form-title">Add Donation</h1>
+                    </header>
+                    <div class="form-container">
+                        <form id="donation-form">
+                            <input type="hidden" id="donation-id">
+                            <div class="form-group autocomplete-container">
+                                <label for="donor-name">Donor Name *</label>
+                                <input
+                                    type="text"
+                                    id="donor-name"
+                                    required
+                                    autocomplete="off"
+                                    placeholder="Start typing name..."
+                                >
+                                <ul id="autocomplete-list" class="autocomplete-items"></ul>
                             </div>
-                            <div class="form-group">
-                                <label for="expense-title">Title *</label>
-                                <input type="text" id="expense-title" required>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="donation-date">Date *</label>
+                                    <input type="date" id="donation-date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="donation-category">Category *</label>
+                                    <select id="donation-category" required>
+                                        <option value="" disabled selected>Select a category</option>
+                                        <option value="Pratham Abhishek">Pratham Abhishek</option>
+                                        <option value="Shanti Dhara">Shanti Dhara</option>
+                                        <option value="Other">Other (Custom)</option>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        id="custom-category"
+                                        placeholder="Enter custom category"
+                                        style="display:none; margin-top:10px;"
+                                    >
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="donation-amount">Amount *</label>
+                                    <input
+                                        type="number"
+                                        id="donation-amount"
+                                        min="1"
+                                        step="0.01"
+                                        required
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label for="pending-amount">Pending Amount</label>
+                                    <input
+                                        type="number"
+                                        id="pending-amount"
+                                        min="0"
+                                        step="0.01"
+                                        value="0"
+                                    >
+                                </div>
+                            </div>
+                            <div class="form-group payment-method-group">
+                                <label>Payment Method *</label>
+                                <div class="radio-group">
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            name="payment_method"
+                                            value="Offline"
+                                            checked
+                                        >
+                                        Offline
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="payment_method" value="Online">
+                                        Online
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group" id="transaction-id-group" style="display: none;">
+                                <label for="transaction-id">Transaction ID *</label>
+                                <input type="text" id="transaction-id">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Save Donation</button>
+                                <button
+                                    type="button"
+                                    class="btn-secondary"
+                                    id="cancel-edit-btn"
+                                    style="display:none;"
+                                >Cancel Edit</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+                <!-- ALL DONATIONS SECTION -->
+                <section id="all-donations-section" class="content-section">
+                    <header class="section-header">
+                        <h1>All Donations</h1>
+                    </header>
+                    <div class="calculationSection">
+                        <div>
+                            <h5>Total Paid</h5>
+                            <p id="all-donations-total-paid" class="amount" style="font-size: 18px;">₹0.00</p>
+                        </div>
+                        <div>
+                            <h5>Total Pending</h5>
+                            <p id="all-donations-total-pending" class="amount" style="font-size: 18px;">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="all-donations-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Donor</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Pending</th>
+                                    <th>Cleared Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data injected via JS --></tbody>
+                        </table>
+                    </div>
+                </section>
+                <!-- DONOR HISTORY SECTION -->
+                <section id="history-section" class="content-section">
+                    <header class="section-header">
+                        <h1>Donor History</h1>
+                    </header>
+                    <div class="search-bar">
+                        <input type="text" id="history-search-name" placeholder="Enter donor name to view history...">
+                        <button id="view-history-btn" class="btn-primary">View History</button>
+                    </div>
+                    <div class="history-summary" id="history-summary" style="display:none;">
+                        <h3>
+                            Donor:
+                            <span id="summary-donor-name"></span>
+                        </h3>
+                        <div class="summary-stats">
+                            <div class="stat">
+                                Total Paid:
+                                <strong id="summary-total-paid">₹0.00</strong>
+                            </div>
+                            <div class="stat">
+                                Total Pending:
+                                <strong id="summary-total-pending">₹0.00</strong>
                             </div>
                         </div>
-
-                        <div class="form-row">
+                    </div>
+                    <div class="table-container">
+                        <table id="history-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Pending</th>
+                                    <th>Clear Date (If Pending)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data injected via JS -->
+                                <tr>
+                                    <td colspan="6" class="text-center">Search for a donor to view history.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <!-- PENDING AMOUNT SECTION -->
+                <section id="pending-section" class="content-section">
+                    <header class="section-header">
+                        <h1>Pending Amounts</h1>
+                    </header>
+                    <div class="summary-cards" style="margin-bottom: 20px;">
+                        <div class="card total-pending" style="padding: 15px; margin: 0 auto; max-width: 300px;">
+                            <h3 style="margin-bottom: 5px;">Overall Pending</h3>
+                            <p id="pending-section-total" class="amount" style="font-size: 22px;">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="pending-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Donor Name</th>
+                                    <th>Total Pending Amount</th>
+                                    <th>Clear Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data injected via JS --></tbody>
+                        </table>
+                    </div>
+                </section>
+                <!-- EXPENSES SECTION -->
+                <section id="expense-section" class="content-section">
+                    <header class="section-header">
+                        <h1>Add Expense</h1>
+                    </header>
+                    <div class="form-container">
+                        <form id="expense-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expense-date">Date *</label>
+                                    <input type="date" id="expense-date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="expense-title">Title *</label>
+                                    <input type="text" id="expense-title" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expense-amount">Amount *</label>
+                                    <input
+                                        type="number"
+                                        id="expense-amount"
+                                        min="1"
+                                        step="0.01"
+                                        required
+                                    >
+                                </div>
+                                <div class="form-group payment-method-group">
+                                    <label>Payment Method *</label>
+                                    <div class="radio-group" style="margin-top: 10px;">
+                                        <label>
+                                            <input
+                                                type="radio"
+                                                name="expense_payment_method"
+                                                value="Offline"
+                                                checked
+                                            >
+                                            Cash
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="expense_payment_method" value="Online">
+                                            Online
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" id="expense-transaction-group" style="display: none;">
+                                <label for="expense-transaction-id">Transaction ID *</label>
+                                <input type="text" id="expense-transaction-id">
+                            </div>
                             <div class="form-group">
-                                <label for="expense-amount">Amount *</label>
-                                <input type="number" id="expense-amount" min="1" step="0.01" required>
+                                <label for="expense-desc">Description</label>
+                                <textarea id="expense-desc" rows="3"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary" id="expense-submit-btn">Save Expense</button>
+                                <button
+                                    type="button"
+                                    class="btn-secondary"
+                                    id="cancel-expense-edit-btn"
+                                    style="display:none;"
+                                >Cancel Edit</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="table-container" style="margin-top: 30px;">
+                        <h3>Expense History</h3>
+                        <table id="expense-table" style="margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data injected via JS --></tbody>
+                        </table>
+                    </div>
+                </section>
+                <!-- Pay Pending Modal -->
+                <div id="pay-pending-modal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 400px; position: relative;">
+                        <span class="close-modal" id="close-pay-pending-modal" style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
+                        <h2 id="pay-pending-modal-title" style="color: var(--secondary-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px; margin-bottom: 15px;">
+                            Clear Pending Amount
+                        </h2>
+                        <form id="pay-pending-form">
+                            <div class="form-group">
+                                <label for="pay-pending-amount">Amount to Pay *</label>
+                                <input
+                                    type="number"
+                                    id="pay-pending-amount"
+                                    min="1"
+                                    step="0.01"
+                                    required
+                                >
+                                <small id="pay-pending-max-hint" style="color: #666;"></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="pay-pending-date">Date *</label>
+                                <input type="date" id="pay-pending-date" required>
                             </div>
                             <div class="form-group payment-method-group">
                                 <label>Payment Method *</label>
                                 <div class="radio-group" style="margin-top: 10px;">
-                                    <label><input type="radio" name="expense_payment_method" value="Offline" checked>
-                                        Cash</label>
-                                    <label><input type="radio" name="expense_payment_method" value="Online">
-                                        Online</label>
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            name="pay_pending_payment_method"
+                                            value="Offline"
+                                            checked
+                                        >
+                                        Offline
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="pay_pending_payment_method" value="Online">
+                                        Online
+                                    </label>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-group" id="expense-transaction-group" style="display: none;">
-                            <label for="expense-transaction-id">Transaction ID *</label>
-                            <input type="text" id="expense-transaction-id">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="expense-desc">Description</label>
-                            <textarea id="expense-desc" rows="3"></textarea>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary" id="expense-submit-btn">Save Expense</button>
-                            <button type="button" class="btn-secondary" id="cancel-expense-edit-btn"
-                                style="display:none;">Cancel Edit</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="table-container" style="margin-top: 30px;">
-                    <h3>Expense History</h3>
-                    <table id="expense-table" style="margin-top: 15px;">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Date</th>
-                                <th>Title</th>
-                                <th>Description</th>
-                                <th>Amount</th>
-                                <th>Payment Method</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data injected via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-            <!-- Pay Pending Modal -->
-            <div id="pay-pending-modal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 400px; position: relative;">
-                    <span class="close-modal" id="close-pay-pending-modal"
-                        style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
-                    <h2 id="pay-pending-modal-title"
-                        style="color: var(--secondary-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px; margin-bottom: 15px;">
-                        Clear Pending Amount</h2>
-                    <form id="pay-pending-form">
-                        <div class="form-group">
-                            <label for="pay-pending-amount">Amount to Pay *</label>
-                            <input type="number" id="pay-pending-amount" min="1" step="0.01" required>
-                            <small id="pay-pending-max-hint" style="color: #666;"></small>
-                        </div>
-                        <div class="form-group">
-                            <label for="pay-pending-date">Date *</label>
-                            <input type="date" id="pay-pending-date" required>
-                        </div>
-                        <div class="form-group payment-method-group">
-                            <label>Payment Method *</label>
-                            <div class="radio-group" style="margin-top: 10px;">
-                                <label><input type="radio" name="pay_pending_payment_method" value="Offline" checked>
-                                    Offline</label>
-                                <label><input type="radio" name="pay_pending_payment_method" value="Online">
-                                    Online</label>
+                            <div class="form-group" id="pay-pending-transaction-group" style="display: none;">
+                                <label for="pay-pending-transaction-id">Transaction ID *</label>
+                                <input type="text" id="pay-pending-transaction-id">
                             </div>
-                        </div>
-                        <div class="form-group" id="pay-pending-transaction-group" style="display: none;">
-                            <label for="pay-pending-transaction-id">Transaction ID *</label>
-                            <input type="text" id="pay-pending-transaction-id">
-                        </div>
-                        <div class="form-actions" style="margin-top: 20px;">
-                            <button type="submit" class="btn-primary" id="pay-pending-submit-btn">Confirm
-                                Payment</button>
-                        </div>
-                    </form>
+                            <div class="form-actions" style="margin-top: 20px;">
+                                <button type="submit" class="btn-primary" id="pay-pending-submit-btn">
+                                    Confirm
+                                Payment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Delete Password Modal -->
-            <div id="delete-password-modal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 360px; position: relative; text-align: center;">
-                    <span class="close-modal" id="close-delete-modal"
-                        style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
-                    <h2
-                        style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; margin-bottom: 15px;">
-                        🔒 Delete Donation</h2>
-                    <p style="color: #666; margin-bottom: 15px;">This action is permanent. Enter the admin password to
-                        confirm.</p>
-                    <form id="delete-password-form">
-                        <div class="form-group" style="text-align: left;">
-                            <label for="delete-password-input">Password *</label>
-                            <input type="password" id="delete-password-input" placeholder="Enter password" required
-                                autocomplete="off">
-                        </div>
-                        <p id="delete-password-error"
-                            style="color:#e53e3e; font-size:13px; display:none; margin-top:5px;">Incorrect password. Try
-                            again.</p>
-                        <div class="form-actions" style="margin-top: 15px;">
-                            <button type="submit" class="btn-primary" style="background: #e53e3e;">Confirm
-                                Delete</button>
-                        </div>
-                    </form>
+                <!-- Delete Password Modal -->
+                <div id="delete-password-modal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 360px; position: relative; text-align: center;">
+                        <span class="close-modal" id="close-delete-modal" style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
+                        <h2 style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; margin-bottom: 15px;">
+                            🔒 Delete Donation
+                        </h2>
+                        <p style="color: #666; margin-bottom: 15px;">
+                            This action is permanent. Enter the admin password to
+                        confirm.
+                        </p>
+                        <form id="delete-password-form">
+                            <div class="form-group" style="text-align: left;">
+                                <label for="delete-password-input">Password *</label>
+                                <input
+                                    type="password"
+                                    id="delete-password-input"
+                                    placeholder="Enter password"
+                                    required
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <p id="delete-password-error" style="color:#e53e3e; font-size:13px; display:none; margin-top:5px;">
+                                Incorrect password. Try
+                            again.
+                            </p>
+                            <div class="form-actions" style="margin-top: 15px;">
+                                <button type="submit" class="btn-primary" style="background: #e53e3e;">
+                                    Confirm
+                                Delete
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Scripts -->
-    <script src="../node_modules/chart.js/dist/chart.umd.js"></script>
-    <script src="app.js"></script>
-    <script src="dashboard.js"></script>
-    <script src="donation.js"></script>
-    <script src="all_donations.js"></script>
-    <script src="history.js"></script>
-    <script src="expense.js"></script>
-</body>
-
+            </main>
+        </div>
+        <!-- Scripts -->
+        <script src="../node_modules/chart.js/dist/chart.umd.js"></script>
+        <script src="app.js"></script>
+        <script src="dashboard.js"></script>
+        <script src="donation.js"></script>
+        <script src="all_donations.js"></script>
+        <script src="history.js"></script>
+        <script src="expense.js"></script>
+    </body>
 </html>

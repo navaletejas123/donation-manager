@@ -17,6 +17,10 @@ window.refreshDashboard = async () => {
             // Update summary cards
             document.getElementById('total-cash-in').innerText = formatCurrency(data.totalCashIn);
             document.getElementById('dashboard-total-pending').innerText = formatCurrency(data.totalPending);
+            
+            // Update total expense card
+            const expenseEl = document.getElementById('total-expense');
+            if (expenseEl) expenseEl.innerText = formatCurrency(data.totalExpense || 0);
 
             // Update Chart
             updateChart(data.dateWiseDonations);

@@ -57,6 +57,12 @@ function createTables() {
             transaction_id TEXT,
             FOREIGN KEY(donation_id) REFERENCES donations(id)
         )`);
+        // Indexes for large data performance
+        db.run(`CREATE INDEX IF NOT EXISTS idx_donations_donor_id ON donations(donor_id)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_donations_date ON donations(date)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_donations_pending ON donations(pending_amount)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_pending_payments_donation_id ON pending_payments(donation_id)`);
     });
 }
 
@@ -170,9 +176,11 @@ const dbManager = {
         try {
             const cashInResult = await getQuery(`SELECT SUM(amount) as total FROM donations`);
             const pendingResult = await getQuery(`SELECT SUM(pending_amount) as total FROM donations`);
+            const expenseResult = await getQuery(`SELECT SUM(amount) as total FROM expenses`);
 
             const totalCashIn = cashInResult.total || 0;
             const totalPending = pendingResult.total || 0;
+            const totalExpense = expenseResult.total || 0;
 
             const dateWiseDonations = await allQuery(`SELECT date, SUM(amount) as total FROM donations GROUP BY date ORDER BY date ASC`);
 
@@ -180,6 +188,7 @@ const dbManager = {
                 success: true,
                 totalCashIn,
                 totalPending,
+                totalExpense,
                 dateWiseDonations
             };
         } catch (error) {
@@ -210,6 +219,29 @@ const dbManager = {
         }
     },
 
+    // Server-side paginated expenses with optional search
+    getPaginatedExpenses: async ({ page = 1, limit = 50, search = '' } = {}) => {
+        try {
+            const offset = (page - 1) * limit;
+            let whereSql = '';
+            let params = [];
+            if (search) {
+                whereSql = `WHERE title LIKE ? OR description LIKE ? OR payment_method LIKE ? OR CAST(amount AS TEXT) LIKE ?`;
+                const like = `%${search}%`;
+                params = [like, like, like, like];
+            }
+            const countRow = await getQuery(`SELECT COUNT(*) as total FROM expenses ${whereSql}`, params);
+            const expenses = await allQuery(
+                `SELECT * FROM expenses ${whereSql} ORDER BY date DESC, id DESC LIMIT ? OFFSET ?`,
+                [...params, limit, offset]
+            );
+            return { success: true, expenses, total: countRow.total, page, limit };
+        } catch (error) {
+            console.error('Error fetching paginated expenses:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     updateExpense: async (data) => {
         try {
             const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ? WHERE id = ?`;
@@ -233,6 +265,34 @@ const dbManager = {
             return { success: true, donations };
         } catch (error) {
             console.error('Error fetching all donations:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Server-side paginated donations with optional search
+    getPaginatedDonations: async ({ page = 1, limit = 50, search = '' } = {}) => {
+        try {
+            const offset = (page - 1) * limit;
+            let whereSql = '';
+            let params = [];
+            if (search) {
+                whereSql = `WHERE don.name LIKE ? OR d.category LIKE ? OR d.payment_method LIKE ? OR CAST(d.amount AS TEXT) LIKE ?`;
+                const like = `%${search}%`;
+                params = [like, like, like, like];
+            }
+            const countRow = await getQuery(
+                `SELECT COUNT(*) as total FROM donations d JOIN donors don ON d.donor_id = don.id ${whereSql}`,
+                params
+            );
+            const donations = await allQuery(
+                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.pending_amount, d.cleared_date, don.name as donor_name
+                 FROM donations d JOIN donors don ON d.donor_id = don.id
+                 ${whereSql} ORDER BY d.date DESC, d.id DESC LIMIT ? OFFSET ?`,
+                [...params, limit, offset]
+            );
+            return { success: true, donations, total: countRow.total, page, limit };
+        } catch (error) {
+            console.error('Error fetching paginated donations:', error);
             return { success: false, error: error.message };
         }
     },

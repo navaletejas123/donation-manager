@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, globalShortcut } = require('electron');
 const path = require('path');
 const dbManager = require('./database');
 
@@ -10,6 +10,8 @@ function createWindow() {
         height: 800,
         minWidth: 900,
         minHeight: 600,
+        frame: false,
+         icon: path.join(__dirname, 'assets/icon.png'), 
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -18,6 +20,45 @@ function createWindow() {
     });
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+    Menu.setApplicationMenu(null);
+
+    globalShortcut.register('CommandOrControl+R', () => {
+        if (mainWindow) {
+            mainWindow.reload();
+        }
+    });
+
+
+    globalShortcut.register('F5', () => {
+        if (mainWindow) {
+            mainWindow.reload();
+        }
+    });
+
+
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+        if (mainWindow) {
+            mainWindow.webContents.openDevTools();
+        }
+    });
+
+    ipcMain.on('window-minimize', () => {
+        if (mainWindow) mainWindow.minimize();
+    });
+
+    ipcMain.on('window-maximize', () => {
+        if (mainWindow) {
+            if (mainWindow.isMaximized()) {
+                mainWindow.unmaximize();
+            } else {
+                mainWindow.maximize();
+            }
+        }
+    });
+
+    ipcMain.on('window-close', () => {
+        if (mainWindow) mainWindow.close();
+    });
 }
 
 app.whenReady().then(() => {
@@ -88,4 +129,12 @@ ipcMain.handle('get-pending-payments', async (event, donationId) => {
 
 ipcMain.handle('delete-donation', async (event, id) => {
     return await dbManager.deleteDonation(id);
+});
+
+ipcMain.handle('get-paginated-expenses', async (event, params) => {
+    return await dbManager.getPaginatedExpenses(params);
+});
+
+ipcMain.handle('get-paginated-donations', async (event, params) => {
+    return await dbManager.getPaginatedDonations(params);
 });

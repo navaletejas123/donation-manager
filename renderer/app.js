@@ -214,3 +214,15 @@ window.showViewModal = (title, detailsHtml) => {
     modal.style.display = 'block';
 };
 
+// renderer/renderer.js
+document.getElementById('min-btn')?.addEventListener('click', () => {
+    window.api.windowMinimize();
+});
+
+document.getElementById('max-btn')?.addEventListener('click', () => {
+    window.api.windowMaximize();
+});
+
+document.getElementById('close-btn')?.addEventListener('click', () => {
+    window.api.windowClose();
+});
