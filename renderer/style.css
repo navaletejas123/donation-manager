@@ -24,7 +24,8 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     display: flex;
-    flex-direction: column; /* Change to column */
+    flex-direction: column;
+    /* Change to column */
     height: 100vh;
     overflow: hidden;
     margin: 0;
@@ -35,7 +36,8 @@ body {
 .app-container {
     display: flex;
     width: 100%;
-     flex: 1; /* Take remaining height */
+    flex: 1;
+    /* Take remaining height */
     overflow: hidden;
 }
 
@@ -280,7 +282,7 @@ textarea:focus {
     font-size: 16px;
     border-radius: 6px;
     cursor: pointer;
-    
+
 
     transition: opacity 0.3s ease;
     font-weight: bold;
@@ -298,7 +300,7 @@ textarea:focus {
     font-size: 16px;
     border-radius: 6px;
     cursor: pointer;
-    
+
 
     transition: background 0.3s ease;
     font-weight: bold;
@@ -605,7 +607,7 @@ tbody tr:hover {
 
 .pagination-btn:disabled {
     opacity: 0.5;
-    cursor: not-allowed;    
+    cursor: not-allowed;
 }
 
 .pagination-info {
@@ -626,12 +628,16 @@ tbody tr:hover {
 
 /* Position the buttons at the top right */
 .window-controls {
-    position: fixed; /* Fixed position relative to the viewport */
-    top: 3px;       /* Distance from top */
-    right: 3px;     /* Distance from right */
+    position: fixed;
+    /* Fixed position relative to the viewport */
+    top: 3px;
+    /* Distance from top */
+    right: 3px;
+    /* Distance from right */
     display: flex;
     gap: 10px;
-    z-index: 9999;   /* Ensure it sits on top of everything */
+    z-index: 9999;
+    /* Ensure it sits on top of everything */
     -webkit-app-region: no-drag;
 }
 
@@ -649,7 +655,8 @@ tbody tr:hover {
     justify-content: center;
     color: white;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Added shadow for visibility */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    /* Added shadow for visibility */
     -webkit-app-region: no-drag;
 }
 
@@ -659,6 +666,7 @@ tbody tr:hover {
     color: white;
     font-size: 20px;
 }
+
 .control-btn.minimize:hover {
     transform: scale(1.1);
     background-color: #eab308;
@@ -669,6 +677,7 @@ tbody tr:hover {
     background-color: #08a341;
     color: white;
 }
+
 .control-btn.maximize:hover {
     transform: scale(1.1);
     background-color: #16a34a;
@@ -679,12 +688,51 @@ tbody tr:hover {
     background-color: #ef4444;
     font-size: 20px;
 }
+
 .control-btn.close:hover {
     transform: scale(1.1);
     background-color: #dc2626;
-    
 }
-.calculationSection{
+
+.calculationSection {
     display: flex;
-    gap: 40px;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.donation_calculation {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    background-color: rgb(207, 253, 207);
+    border: 1px solid rgb(4, 209, 4);
+    padding: 2px 10px;
+    border-radius: 20px;
+}
+
+.donation_calculation h5,
+.donation_calculation p {
+    margin: 0;
+    font-size: 16px;
+    color: rgb(97, 96, 96);
+    font-weight: 500;
+}
+
+.pendingSection_Calculation_Container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #d9534f;
+    background-color: #ffeaea;
+    border: 1px solid #ffcdcd;
+    padding: 2px 10px;
+    border-radius: 20px;
+}
+
+.pendingSection_Calculation_Container h5,
+.pendingSection_Calculation_Container p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
 }

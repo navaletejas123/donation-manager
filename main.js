@@ -21,6 +21,7 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     Menu.setApplicationMenu(null);
+    mainWindow.webContents.openDevTools()
 
     globalShortcut.register('CommandOrControl+R', () => {
         if (mainWindow) {
