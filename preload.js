@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     payPendingDonor: (data) => ipcRenderer.invoke('pay-pending-donor', data),
     getPendingPayments: (donationId) => ipcRenderer.invoke('get-pending-payments', donationId),
     deleteDonation: (id) => ipcRenderer.invoke('delete-donation', id),
+    deleteExpense: (id) => ipcRenderer.invoke('delete-expense', id),
 
      windowMinimize: () => ipcRenderer.send('window-minimize'),
     windowMaximize: () => ipcRenderer.send('window-maximize'),

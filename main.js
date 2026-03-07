@@ -21,7 +21,7 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     Menu.setApplicationMenu(null);
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
 
     globalShortcut.register('CommandOrControl+R', () => {
         if (mainWindow) {
@@ -138,4 +138,8 @@ ipcMain.handle('get-paginated-expenses', async (event, params) => {
 
 ipcMain.handle('get-paginated-donations', async (event, params) => {
     return await dbManager.getPaginatedDonations(params);
+});
+
+ipcMain.handle('delete-expense', async (event, id) => {
+    return await dbManager.deleteExpense(id);
 });

@@ -1,6 +1,7 @@
 // dashboard.js
 
 let mainChart;
+let pieChart;
 
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -22,8 +23,9 @@ window.refreshDashboard = async () => {
             const expenseEl = document.getElementById('total-expense');
             if (expenseEl) expenseEl.innerText = formatCurrency(data.totalExpense || 0);
 
-            // Update Chart
-            updateChart(data.dateWiseDonations);
+            // Update Charts
+            updateBarChart(data.dateWiseDonations);
+            updatePieChart(data.categoryWiseDonations || []);
         } else {
             console.error("Failed to load dashboard data", data.error);
         }
@@ -32,13 +34,10 @@ window.refreshDashboard = async () => {
     }
 };
 
-function updateChart(donations) {
+function updateBarChart(donations) {
     const ctx = document.getElementById('mainChart').getContext('2d');
 
-    // Extract unique dates and sort them
     const labels = donations.map(d => d.date).sort();
-
-    // Map data to labels
     const donationData = labels.map(label => {
         const item = donations.find(d => d.date === label);
         return item ? item.total : 0;
@@ -56,21 +55,95 @@ function updateChart(donations) {
                 {
                     label: 'Donations Received',
                     data: donationData,
-                    backgroundColor: 'rgba(65, 105, 225, 0.8)', // Primary blue
+                    backgroundColor: 'rgba(65, 105, 225, 0.75)',
                     borderColor: 'rgba(65, 105, 225, 1)',
-                    borderWidth: 1
+                    borderWidth: 1,
+                    borderRadius: 4
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ' ₹' + ctx.raw.toLocaleString('en-IN')
+                    }
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '₹' + value;
+                            return '₹' + value.toLocaleString('en-IN');
+                        }
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        autoSkip: true,
+                        maxTicksLimit: 15
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updatePieChart(categories) {
+    const ctx = document.getElementById('pieChart').getContext('2d');
+
+    if (pieChart) {
+        pieChart.destroy();
+    }
+
+    if (!categories || categories.length === 0) {
+        categories = [{ category: 'No Data', total: 1 }];
+    }
+
+    const labels = categories.map(c => c.category);
+    const data = categories.map(c => c.total);
+
+    const palette = [
+        '#4169E1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+        '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
+        '#14b8a6', '#e11d48', '#d97706', '#7c3aed', '#0284c7'
+    ];
+
+    pieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: palette.slice(0, labels.length),
+                borderColor: '#fff',
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 12,
+                        font: { size: 12 },
+                        boxWidth: 14
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const val = ctx.raw;
+                            return ` ${ctx.label}: ₹${val.toLocaleString('en-IN')}`;
                         }
                     }
                 }
@@ -79,8 +152,6 @@ function updateChart(donations) {
     });
 }
 
-// Ensure it loads exactly when the chart script loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Initial load
     window.refreshDashboard();
 });

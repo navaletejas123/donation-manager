@@ -88,43 +88,95 @@ window.formatDateDDMMYYYY = (dateString) => {
     return `${day}-${month}-${year}`;
 };
 
-// 3. Pagination and Search Helper
+// 3. Pagination and Search Helper (for client-side tables: history, pending)
 window.setupPaginationAndSearch = (tableId, dataArray, renderRowCallback) => {
-    const tableContainer = document.querySelector(`#${tableId}`).parentElement;
-    
-    // Create or find controls container
+    const tableEl = document.querySelector(`#${tableId}`);
+    const tableContainer = tableEl.parentElement;
+
+    // Create/find filter controls above table
     let controls = tableContainer.querySelector('.table-controls');
     if (!controls) {
         controls = document.createElement('div');
         controls.className = 'table-controls';
-        
-        controls.innerHTML = `
-            <input type="text" class="table-search-input" placeholder="Search...">
-            <div class="pagination-controls">
-                <button class="pagination-btn prev-btn">Previous</button>
-                <span class="pagination-info">Page 1 of 1</span>
-                <button class="pagination-btn next-btn">Next</button>
-            </div>
-        `;
-        tableContainer.insertBefore(controls, document.querySelector(`#${tableId}`));
+        tableContainer.insertBefore(controls, tableEl);
     }
+    controls.innerHTML = `
+        <div class="filter-bar">
+            <input type="text" class="table-search-input" placeholder="Search...">
+            <input type="date" class="table-date-filter" title="Filter by exact date">
+            <select class="table-month-filter" title="Filter by month">
+                <option value="">All Months</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <button class="btn-secondary clear-filters-btn" style="padding:5px 10px;font-size:13px;">Clear</button>
+        </div>
+    `;
+
+    // Pagination bar BELOW the table
+    let paginationBar = tableContainer.querySelector('.pagination-bar');
+    if (!paginationBar) {
+        paginationBar = document.createElement('div');
+        paginationBar.className = 'pagination-bar';
+        tableContainer.appendChild(paginationBar);
+    }
+    paginationBar.innerHTML = `
+        <span class="pagination-info">Page 1 of 1</span>
+        <div class="pagination-controls">
+            <button class="pagination-btn prev-btn">&#8249; Prev</button>
+            <button class="pagination-btn next-btn">Next &#8250;</button>
+        </div>
+    `;
 
     let currentPage = 1;
     const itemsPerPage = 10;
     let filteredData = [...dataArray];
 
     const searchInput = controls.querySelector('.table-search-input');
-    const prevBtn = controls.querySelector('.prev-btn');
-    const nextBtn = controls.querySelector('.next-btn');
-    const pageInfo = controls.querySelector('.pagination-info');
+    const dateFilterEl = controls.querySelector('.table-date-filter');
+    const monthFilterEl = controls.querySelector('.table-month-filter');
+    const clearBtn = controls.querySelector('.clear-filters-btn');
+    const prevBtn = paginationBar.querySelector('.prev-btn');
+    const nextBtn = paginationBar.querySelector('.next-btn');
+    const pageInfo = paginationBar.querySelector('.pagination-info');
     const tbody = document.querySelector(`#${tableId} tbody`);
+
+    const applyFilters = () => {
+        const term = searchInput.value.toLowerCase();
+        const dateVal = dateFilterEl.value; // YYYY-MM-DD
+        const monthVal = monthFilterEl.value; // 01..12
+
+        filteredData = dataArray.filter(item => {
+            // Text search
+            const matchText = !term || Object.values(item).some(val =>
+                String(val).toLowerCase().includes(term)
+            );
+            // Date filter (item.date is YYYY-MM-DD)
+            const matchDate = !dateVal || (item.date && item.date === dateVal);
+            // Month filter
+            const matchMonth = !monthVal || (item.date && item.date.substring(5, 7) === monthVal);
+            return matchText && matchDate && matchMonth;
+        });
+        currentPage = 1;
+        renderPage();
+    };
 
     const renderPage = () => {
         const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
 
-        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${filteredData.length} records)`;
         prevBtn.disabled = currentPage === 1;
         nextBtn.disabled = currentPage === totalPages;
 
@@ -137,49 +189,35 @@ window.setupPaginationAndSearch = (tableId, dataArray, renderRowCallback) => {
         const start = (currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage;
         const pageData = filteredData.slice(start, end);
-
         pageData.forEach((item, index) => {
-            renderRowCallback(tbody, item, start + index + 1); // index is global offset
+            renderRowCallback(tbody, item, start + index + 1);
         });
     };
 
-    // Attach Search Event (Replace old listeners to avoid duplicates)
-    const newSearchInput = searchInput.cloneNode(true);
-    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-    
-    newSearchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        filteredData = dataArray.filter(item => {
-            return Object.values(item).some(val => 
-                String(val).toLowerCase().includes(term)
-            );
-        });
+    searchInput.addEventListener('input', applyFilters);
+    dateFilterEl.addEventListener('change', applyFilters);
+    monthFilterEl.addEventListener('change', applyFilters);
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        dateFilterEl.value = '';
+        monthFilterEl.value = '';
+        filteredData = [...dataArray];
         currentPage = 1;
         renderPage();
     });
 
-    const newPrevBtn = prevBtn.cloneNode(true);
-    prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
-    newPrevBtn.addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
-            renderPage();
-        }
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; renderPage(); }
     });
-
-    const newNextBtn = nextBtn.cloneNode(true);
-    nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
-    newNextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', () => {
         const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderPage();
-        }
+        if (currentPage < totalPages) { currentPage++; renderPage(); }
     });
 
     // Initial render
     renderPage();
 };
+
 
 // 4. Generic View Modal
 window.showViewModal = (title, detailsHtml) => {

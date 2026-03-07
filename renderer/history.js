@@ -132,27 +132,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Autocomplete for History Search
     let debounceTimer;
     const autocompleteList = document.getElementById('history-autocomplete-list');
-    if (!autocompleteList) {
-        // Insert if missing
-        const list = document.createElement('ul');
-        list.id = 'history-autocomplete-list';
-        list.className = 'autocomplete-items';
-        searchInput.parentElement.appendChild(list);
-    }
     
     searchInput.addEventListener('input', (e) => {
         clearTimeout(debounceTimer);
         const query = e.target.value.trim();
-        const autolist = document.getElementById('history-autocomplete-list');
         
         if (query.length < 2) {
-            autolist.innerHTML = '';
+            autocompleteList.innerHTML = '';
             return;
         }
 
         debounceTimer = setTimeout(async () => {
             const results = await window.api.searchDonors(query);
-            autolist.innerHTML = '';
+            autocompleteList.innerHTML = '';
             
             if (results && results.length > 0) {
                 results.forEach(donor => {
@@ -160,10 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     li.textContent = donor.name;
                     li.addEventListener('click', () => {
                         searchInput.value = donor.name;
-                        autolist.innerHTML = '';
-                        searchBtn.click(); // Auto-trigger search when selecting from autocomplete
+                        autocompleteList.innerHTML = '';
+                        searchBtn.click();
                     });
-                    autolist.appendChild(li);
+                    autocompleteList.appendChild(li);
                 });
             }
         }, 300);
@@ -172,8 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close autocomplete on outside click
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-bar')) {
-            const autolist = document.getElementById('history-autocomplete-list');
-            if(autolist) autolist.innerHTML = '';
+            autocompleteList.innerHTML = '';
         }
     });
 

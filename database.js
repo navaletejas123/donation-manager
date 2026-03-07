@@ -183,13 +183,15 @@ const dbManager = {
             const totalExpense = expenseResult.total || 0;
 
             const dateWiseDonations = await allQuery(`SELECT date, SUM(amount) as total FROM donations GROUP BY date ORDER BY date ASC`);
+            const categoryWiseDonations = await allQuery(`SELECT category, SUM(amount) as total FROM donations GROUP BY category ORDER BY total DESC`);
 
             return {
                 success: true,
                 totalCashIn,
                 totalPending,
                 totalExpense,
-                dateWiseDonations
+                dateWiseDonations,
+                categoryWiseDonations
             };
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
@@ -220,16 +222,29 @@ const dbManager = {
     },
 
     // Server-side paginated expenses with optional search
-    getPaginatedExpenses: async ({ page = 1, limit = 50, search = '' } = {}) => {
+    getPaginatedExpenses: async ({ page = 1, limit = 50, search = '', dateFilter = '', monthFilter = '', yearFilter = '' } = {}) => {
         try {
             const offset = (page - 1) * limit;
-            let whereSql = '';
+            let conditions = [];
             let params = [];
             if (search) {
-                whereSql = `WHERE title LIKE ? OR description LIKE ? OR payment_method LIKE ? OR CAST(amount AS TEXT) LIKE ?`;
+                conditions.push(`(title LIKE ? OR description LIKE ? OR payment_method LIKE ? OR CAST(amount AS TEXT) LIKE ?)`);
                 const like = `%${search}%`;
-                params = [like, like, like, like];
+                params.push(like, like, like, like);
             }
+            if (dateFilter) {
+                conditions.push(`date = ?`);
+                params.push(dateFilter);
+            }
+            if (monthFilter) {
+                conditions.push(`strftime('%Y-%m', date) = ?`);
+                params.push(monthFilter);
+            }
+            if (yearFilter && !monthFilter) {
+                conditions.push(`strftime('%Y', date) = ?`);
+                params.push(String(yearFilter));
+            }
+            const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
             const countRow = await getQuery(`SELECT COUNT(*) as total FROM expenses ${whereSql}`, params);
             const expenses = await allQuery(
                 `SELECT * FROM expenses ${whereSql} ORDER BY date DESC, id DESC LIMIT ? OFFSET ?`,
@@ -270,16 +285,29 @@ const dbManager = {
     },
 
     // Server-side paginated donations with optional search
-    getPaginatedDonations: async ({ page = 1, limit = 50, search = '' } = {}) => {
+    getPaginatedDonations: async ({ page = 1, limit = 50, search = '', dateFilter = '', monthFilter = '', yearFilter = '' } = {}) => {
         try {
             const offset = (page - 1) * limit;
-            let whereSql = '';
+            let conditions = [];
             let params = [];
             if (search) {
-                whereSql = `WHERE don.name LIKE ? OR d.category LIKE ? OR d.payment_method LIKE ? OR CAST(d.amount AS TEXT) LIKE ?`;
+                conditions.push(`(don.name LIKE ? OR d.category LIKE ? OR d.payment_method LIKE ? OR CAST(d.amount AS TEXT) LIKE ?)`);
                 const like = `%${search}%`;
-                params = [like, like, like, like];
+                params.push(like, like, like, like);
             }
+            if (dateFilter) {
+                conditions.push(`d.date = ?`);
+                params.push(dateFilter);
+            }
+            if (monthFilter) {
+                conditions.push(`strftime('%Y-%m', d.date) = ?`);
+                params.push(monthFilter);
+            }
+            if (yearFilter && !monthFilter) {
+                conditions.push(`strftime('%Y', d.date) = ?`);
+                params.push(String(yearFilter));
+            }
+            const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
             const countRow = await getQuery(
                 `SELECT COUNT(*) as total FROM donations d JOIN donors don ON d.donor_id = don.id ${whereSql}`,
                 params
@@ -393,7 +421,7 @@ const dbManager = {
 
     getPendingPayments: async (donationId) => {
         try {
-            const sql = `SELECT * FROM pending_payments WHERE donation_id = ? ORDER BY date ASC, id ASC`;
+            const sql = `SELECT * FROM pending_payments WHERE donation_id = ? ORDER BY date DESC, id DESC`;
             const payments = await allQuery(sql, [donationId]);
             return { success: true, payments };
         } catch (error) {
@@ -410,6 +438,16 @@ const dbManager = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting donation:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    deleteExpense: async (id) => {
+        try {
+            await runQuery(`DELETE FROM expenses WHERE id = ?`, [id]);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting expense:', error);
             return { success: false, error: error.message };
         }
     }

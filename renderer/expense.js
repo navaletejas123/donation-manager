@@ -7,6 +7,61 @@ const formatExpenseCurrency = (amount) => {
     }).format(amount);
 };
 
+const EXPENSE_DELETE_PASSWORD = '9097';
+
+function openExpenseDeleteModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('delete-password-modal');
+        const input = document.getElementById('delete-password-input');
+        const errorEl = document.getElementById('delete-password-error');
+        const closeBtn = document.getElementById('close-delete-modal');
+
+        input.value = '';
+        errorEl.style.display = 'none';
+        modal.style.display = 'block';
+        setTimeout(() => input.focus(), 100);
+
+        const form = document.getElementById('delete-password-form');
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+        const newInput = document.getElementById('delete-password-input');
+        const newErrorEl = document.getElementById('delete-password-error');
+        newErrorEl.style.display = 'none';
+
+        newForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (newInput.value === EXPENSE_DELETE_PASSWORD) {
+                modal.style.display = 'none';
+                resolve(true);
+            } else {
+                newErrorEl.style.display = 'block';
+                newInput.value = '';
+                newInput.focus();
+            }
+        });
+
+        closeBtn.onclick = () => { modal.style.display = 'none'; resolve(null); };
+
+        window.addEventListener('click', function onOutside(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                window.removeEventListener('click', onOutside);
+                resolve(null);
+            }
+        });
+    });
+}
+
+async function updateExpenseTotalPill() {
+    try {
+        const dashData = await window.api.getDashboardData();
+        const pill = document.getElementById('expense-total-pill');
+        if (pill && dashData.success) {
+            pill.textContent = `Total: ${formatExpenseCurrency(dashData.totalExpense || 0)}`;
+        }
+    } catch (e) { /* ignore */ }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const expenseForm = document.getElementById('expense-form');
     const expenseTableBody = document.querySelector('#expense-table tbody');
@@ -16,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const itemsPerPage = 50;
     let currentSearch = '';
+    let currentDate = '';
+    let currentMonth = '';
     let totalRecords = 0;
     let debounceTimer = null;
 
@@ -26,32 +83,90 @@ document.addEventListener('DOMContentLoaded', () => {
         controls = document.createElement('div');
         controls.className = 'table-controls';
         controls.innerHTML = `
-            <input type="text" class="table-search-input" placeholder="Search expenses...">
-            <div class="pagination-controls">
-                <button class="pagination-btn prev-btn">Previous</button>
-                <span class="pagination-info">Page 1 of 1</span>
-                <button class="pagination-btn next-btn">Next</button>
+            <div class="filter-bar">
+                <input type="text" class="table-search-input" placeholder="Search expenses...">
+                <input type="date" class="table-date-filter" title="Filter by date">
+                <select class="table-month-filter" title="Filter by month">
+                    <option value="">All Months</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+                <select class="table-year-filter" title="Filter by year">
+                    <option value="">All Years</option>
+                </select>
+                <button class="btn-secondary clear-filters-btn" style="padding:5px 10px;font-size:13px;">Clear</button>
             </div>
         `;
         tableContainer.insertBefore(controls, document.querySelector('#expense-table'));
     }
 
+    // Pagination goes BELOW the table
+    let paginationBar = tableContainer.querySelector('.pagination-bar');
+    if (!paginationBar) {
+        paginationBar = document.createElement('div');
+        paginationBar.className = 'pagination-bar';
+        paginationBar.innerHTML = `
+            <span class="pagination-info">Page 1 of 1</span>
+            <div class="pagination-controls">
+                <button class="pagination-btn prev-btn">&#8249; Prev</button>
+                <button class="pagination-btn next-btn">Next &#8250;</button>
+            </div>
+        `;
+        tableContainer.appendChild(paginationBar);
+    }
+
     const searchInput = controls.querySelector('.table-search-input');
-    const prevBtn = controls.querySelector('.prev-btn');
-    const nextBtn = controls.querySelector('.next-btn');
-    const pageInfo = controls.querySelector('.pagination-info');
+    const dateFilter = controls.querySelector('.table-date-filter');
+    const monthFilter = controls.querySelector('.table-month-filter');
+    const yearFilter = controls.querySelector('.table-year-filter');
+    const clearBtn = controls.querySelector('.clear-filters-btn');
+    const prevBtn = paginationBar.querySelector('.prev-btn');
+    const nextBtn = paginationBar.querySelector('.next-btn');
+    const pageInfo = paginationBar.querySelector('.pagination-info');
+
+    // Populate year filter
+    const thisYear = new Date().getFullYear();
+    for (let y = thisYear; y >= thisYear - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        yearFilter.appendChild(opt);
+    }
 
     // -------- FETCH & RENDER --------
     const fetchAndRender = async () => {
         try {
+            // Build monthFilter param: YYYY-MM if both month and year selected,
+            // or just the year if only year selected
+            let monthParam = '';
+            const mVal = monthFilter.value;
+            const yVal = yearFilter.value;
+            if (mVal && yVal) monthParam = `${yVal}-${mVal}`;
+            else if (yVal) monthParam = yVal; // partial prefix match won't work with strftime, handle below
+            // For year-only filter we use a LIKE approach — we'll pass it as dateFilter prefix workaround
+            // Actually let's pass year as monthFilter prefix with strftime('%Y', date) = yVal
+            // We'll add a yearFilter param instead
             const data = await window.api.getPaginatedExpenses({
                 page: currentPage,
                 limit: itemsPerPage,
-                search: currentSearch
+                search: currentSearch,
+                dateFilter: currentDate,
+                monthFilter: monthParam,
+                yearFilter: (!mVal && yVal) ? yVal : ''
             });
 
             if (!data.success) {
-                expenseTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Error loading expenses.</td></tr>`;
+                expenseTableBody.innerHTML = `<tr><td colspan="8" class="text-center">Error loading expenses.</td></tr>`;
                 return;
             }
 
@@ -59,13 +174,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalPages = Math.ceil(totalRecords / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
 
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalRecords} total)`;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalRecords} records)`;
             prevBtn.disabled = currentPage === 1;
             nextBtn.disabled = currentPage === totalPages;
 
             expenseTableBody.innerHTML = '';
             if (data.expenses.length === 0) {
-                expenseTableBody.innerHTML = `<tr><td colspan="7" class="text-center">No expenses found.</td></tr>`;
+                expenseTableBody.innerHTML = `<tr><td colspan="8" class="text-center">No expenses found.</td></tr>`;
+                updateExpenseTotalPill();
                 return;
             }
 
@@ -80,8 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${formatExpenseCurrency(e.amount)}</td>
                     <td>${e.payment_method || 'Offline'} ${e.transaction_id ? '(' + e.transaction_id + ')' : ''}</td>
                     <td>
-                        <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 5px;">View</button>
-                        <button class="btn-secondary edit-btn" style="padding: 5px 10px; font-size: 13px;">Edit</button>
+                        <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">View</button>
+                        <button class="btn-secondary edit-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">Edit</button>
+                        <button class="btn-danger delete-btn" style="padding: 5px 10px; font-size: 13px; background:#e53e3e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Delete</button>
                     </td>
                 `;
 
@@ -123,11 +240,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('expense-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 });
 
+                tr.querySelector('.delete-btn').addEventListener('click', async () => {
+                    const confirmed = await openExpenseDeleteModal();
+                    if (!confirmed) return;
+                    const res = await window.api.deleteExpense(e.id);
+                    if (res.success) {
+                        window.showToast('Expense deleted successfully!', 'success');
+                        await fetchAndRender();
+                        if (window.refreshDashboard) window.refreshDashboard();
+                    } else {
+                        window.showToast('Error deleting expense: ' + res.error, 'error');
+                    }
+                });
+
                 expenseTableBody.appendChild(tr);
             });
+
+            updateExpenseTotalPill();
         } catch (err) {
             console.error('Error loading expenses', err);
-            expenseTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Failed to load expenses.</td></tr>`;
+            expenseTableBody.innerHTML = `<tr><td colspan="8" class="text-center">Failed to load expenses.</td></tr>`;
         }
     };
 
@@ -135,11 +267,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.refreshExpenses = async () => {
         currentPage = 1;
         currentSearch = '';
+        currentDate = '';
+        currentMonth = '';
         if (searchInput) searchInput.value = '';
+        if (dateFilter) dateFilter.value = '';
+        if (monthFilter) monthFilter.value = '';
+        if (yearFilter) yearFilter.value = '';
         await fetchAndRender();
     };
 
-    // -------- SEARCH (debounced, server-side) --------
+    // -------- SEARCH (debounced) --------
     searchInput.addEventListener('input', (e) => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -147,6 +284,33 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPage = 1;
             fetchAndRender();
         }, 300);
+    });
+
+    dateFilter.addEventListener('change', () => {
+        currentDate = dateFilter.value;
+        currentPage = 1;
+        fetchAndRender();
+    });
+
+    monthFilter.addEventListener('change', () => {
+        currentPage = 1;
+        fetchAndRender();
+    });
+
+    yearFilter.addEventListener('change', () => {
+        currentPage = 1;
+        fetchAndRender();
+    });
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        dateFilter.value = '';
+        monthFilter.value = '';
+        yearFilter.value = '';
+        currentSearch = '';
+        currentDate = '';
+        currentPage = 1;
+        fetchAndRender();
     });
 
     // -------- PAGINATION BUTTONS --------
