@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clarkBalanceContainer = document.getElementById('clark-cash-balance-container');
     const otherMethodGroup = document.getElementById('expense-other-method-group');
     const otherMethodInput = document.getElementById('expense-other-method');
+    const transactionGroup = document.getElementById('expense-transaction-group');
     const transactionInput = document.getElementById('expense-transaction-id');
     const bankCheckGroup = document.getElementById('expense-bank-check-group');
     const bankCheckNumberInput = document.getElementById('expense-bank-check-number');
