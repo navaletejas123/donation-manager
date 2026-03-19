@@ -77,8 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const clarkBalanceContainer = document.getElementById('clark-cash-balance-container');
     const otherMethodGroup = document.getElementById('expense-other-method-group');
     const otherMethodInput = document.getElementById('expense-other-method');
-    const transactionGroup = document.getElementById('expense-transaction-group');
     const transactionInput = document.getElementById('expense-transaction-id');
+    const bankCheckGroup = document.getElementById('expense-bank-check-group');
+    const bankCheckNumberInput = document.getElementById('expense-bank-check-number');
+    const bankNameInput = document.getElementById('expense-bank-name');
     const submitBtn = document.getElementById('expense-submit-btn');
     const cancelEditBtn = document.getElementById('cancel-expense-edit-btn');
 
@@ -212,7 +214,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${e.title}</td>
                     <td>${e.description ? (e.description.length > 30 ? e.description.substring(0, 30) + '...' : e.description) : '-'}</td>
                     <td>${formatExpenseCurrency(e.amount)}</td>
-                    <td>${e.payment_method || 'Offline'} ${e.transaction_id ? '(' + e.transaction_id + ')' : ''}</td>
+                    <td>
+                        ${e.payment_method || 'Offline'} 
+                        ${e.transaction_id ? '(' + e.transaction_id + ')' : ''}
+                        ${e.payment_method === 'Bank Check' ? `(${e.bank_check_number}, ${e.bank_name})` : ''}
+                    </td>
                     <td>
                         <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">View</button>
                         <button class="btn-secondary edit-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">Edit</button>
@@ -225,7 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(e.date)}</p>
                         <p><strong>Title:</strong> ${e.title}</p>
                         <p><strong>Amount:</strong> ${formatExpenseCurrency(e.amount)}</p>
-                        <p><strong>Payment Method:</strong> ${e.payment_method || 'Offline'} ${e.transaction_id ? `(${e.transaction_id})` : ''}</p>
+                        <p><strong>Payment Method:</strong> 
+                            ${e.payment_method || 'Offline'} 
+                            ${e.transaction_id ? `(${e.transaction_id})` : ''}
+                            ${e.payment_method === 'Bank Check' ? `(${e.bank_check_number}, ${e.bank_name})` : ''}
+                        </p>
                         <p><strong>Description:</strong> ${e.description ? e.description.replace(/\n/g, '<br>') : 'N/A'}</p>
                     `;
                     window.showViewModal('Expense Details', html);
@@ -259,10 +269,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         transactionGroup.style.display = 'block';
                         transactionInput.value = e.transaction_id || '';
                         transactionInput.setAttribute('required', 'true');
+                        bankCheckGroup.style.display = 'none';
+                    } else if (pMethod === 'Bank Check') {
+                        transactionGroup.style.display = 'none';
+                        bankCheckGroup.style.display = 'block';
+                        bankCheckNumberInput.value = e.bank_check_number || '';
+                        bankNameInput.value = e.bank_name || '';
+                        bankCheckNumberInput.setAttribute('required', 'true');
+                        bankNameInput.setAttribute('required', 'true');
                     } else {
                         transactionGroup.style.display = 'none';
                         transactionInput.value = '';
                         transactionInput.removeAttribute('required');
+                        bankCheckGroup.style.display = 'none';
                     }
                     
                     // Show balance if Clark Cash
@@ -374,8 +393,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const transactionId = transactionInput.value;
+        const bankCheckNumber = bankCheckNumberInput.value;
+        const bankName = bankNameInput.value;
 
-        const data = { id: editingExpenseId, date, title, amount, description, paymentMethod, transactionId };
+        const data = { id: editingExpenseId, date, title, amount, description, paymentMethod, transactionId, bankCheckNumber, bankName };
 
         try {
             let result;
@@ -415,6 +436,11 @@ document.addEventListener('DOMContentLoaded', () => {
         otherMethodInput.removeAttribute('required');
         transactionGroup.style.display = 'none';
         transactionInput.removeAttribute('required');
+        bankCheckGroup.style.display = 'none';
+        bankCheckNumberInput.removeAttribute('required');
+        bankNameInput.removeAttribute('required');
+        bankCheckNumberInput.value = '';
+        bankNameInput.value = '';
         
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('expense-date').value = today;
@@ -429,10 +455,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.value === 'Online') {
                 transactionGroup.style.display = 'block';
                 transactionInput.setAttribute('required', 'true');
+                bankCheckGroup.style.display = 'none';
+                bankCheckNumberInput.removeAttribute('required');
+                bankNameInput.removeAttribute('required');
+            } else if (e.target.value === 'Bank Check') {
+                transactionGroup.style.display = 'none';
+                transactionInput.removeAttribute('required');
+                transactionInput.value = '';
+                bankCheckGroup.style.display = 'block';
+                bankCheckNumberInput.setAttribute('required', 'true');
+                bankNameInput.setAttribute('required', 'true');
             } else {
                 transactionGroup.style.display = 'none';
                 transactionInput.removeAttribute('required');
                 transactionInput.value = '';
+                bankCheckGroup.style.display = 'none';
+                bankCheckNumberInput.removeAttribute('required');
+                bankNameInput.removeAttribute('required');
             }
 
             // Show/Hide balance container

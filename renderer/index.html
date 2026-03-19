@@ -136,11 +136,27 @@
                                     <input type="radio" name="payment_method" value="Online">
                                     Online
                                 </label>
+                                <label>
+                                    <input type="radio" name="payment_method" value="Bank Check">
+                                    Bank Check
+                                </label>
                             </div>
                         </div>
                         <div class="form-group" id="transaction-id-group" style="display: none;">
                             <label for="transaction-id">Transaction ID *</label>
                             <input type="text" id="transaction-id">
+                        </div>
+                        <div id="bank-check-group" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bank-check-number">Bank Check Number *</label>
+                                    <input type="text" id="bank-check-number" placeholder="Enter check number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="bank-name">Bank Name *</label>
+                                    <input type="text" id="bank-name" placeholder="Enter bank name">
+                                </div>
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn-primary">Save Donation</button>
@@ -304,6 +320,10 @@
                                         <input type="radio" name="expense_payment_method" value="Other">
                                         Other
                                     </label>
+                                    <label>
+                                        <input type="radio" name="expense_payment_method" value="Bank Check">
+                                        Bank Check
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -314,6 +334,18 @@
                         <div class="form-group" id="expense-transaction-group" style="display: none;">
                             <label for="expense-transaction-id">Transaction ID *</label>
                             <input type="text" id="expense-transaction-id">
+                        </div>
+                        <div id="expense-bank-check-group" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expense-bank-check-number">Bank Check Number *</label>
+                                    <input type="text" id="expense-bank-check-number" placeholder="Enter check number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="expense-bank-name">Bank Name *</label>
+                                    <input type="text" id="expense-bank-name" placeholder="Enter bank name">
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="expense-desc">Description</label>
@@ -379,11 +411,27 @@
                                     <input type="radio" name="pay_pending_payment_method" value="Online">
                                     Online
                                 </label>
+                                <label>
+                                    <input type="radio" name="pay_pending_payment_method" value="Bank Check">
+                                    Bank Check
+                                </label>
                             </div>
                         </div>
                         <div class="form-group" id="pay-pending-transaction-group" style="display: none;">
                             <label for="pay-pending-transaction-id">Transaction ID *</label>
                             <input type="text" id="pay-pending-transaction-id">
+                        </div>
+                        <div id="pay-pending-bank-check-group" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="pay-pending-bank-check-number">Bank Check Number *</label>
+                                    <input type="text" id="pay-pending-bank-check-number" placeholder="Enter check number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="pay-pending-bank-name">Bank Name *</label>
+                                    <input type="text" id="pay-pending-bank-name" placeholder="Enter bank name">
+                                </div>
+                            </div>
                         </div>
                         <div class="form-actions" style="margin-top: 20px;">
                             <button type="submit" class="btn-primary" id="pay-pending-submit-btn">

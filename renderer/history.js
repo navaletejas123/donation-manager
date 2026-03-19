@@ -17,13 +17,21 @@ function setupPayPendingModal() {
     const paymentRadios = form.querySelectorAll('input[name="pay_pending_payment_method"]');
     paymentRadios.forEach(radio => {
         radio.addEventListener('change', (e) => {
+            const bcGroup = document.getElementById('pay-pending-bank-check-group');
             if (e.target.value === 'Online') {
                 txGroup.style.display = 'block';
                 txInput.setAttribute('required', 'true');
+                bcGroup.style.display = 'none';
+            } else if (e.target.value === 'Bank Check') {
+                txGroup.style.display = 'none';
+                txInput.removeAttribute('required');
+                txInput.value = '';
+                bcGroup.style.display = 'block';
             } else {
                 txGroup.style.display = 'none';
                 txInput.removeAttribute('required');
                 txInput.value = '';
+                bcGroup.style.display = 'none';
             }
         });
     });
@@ -61,12 +69,20 @@ function openPayPendingModal(title, maxAmount) {
         const hintEl       = document.getElementById('pay-pending-max-hint');
         const txGroup      = document.getElementById('pay-pending-transaction-group');
         const txInput      = document.getElementById('pay-pending-transaction-id');
+        const bcGroup      = document.getElementById('pay-pending-bank-check-group');
+        const bcNoInput    = document.getElementById('pay-pending-bank-check-number');
+        const bankInput    = document.getElementById('pay-pending-bank-name');
 
         // Reset & pre-fill
         newForm.reset();
         txGroup.style.display = 'none';
         txInput.removeAttribute('required');
         txInput.value = '';
+        bcGroup.style.display = 'none';
+        bcNoInput.removeAttribute('required');
+        bankInput.removeAttribute('required');
+        bcNoInput.value = '';
+        bankInput.value = '';
         amountInput.max  = maxAmount;
         amountInput.value = '';
         dateInput.value  = '';
@@ -78,10 +94,23 @@ function openPayPendingModal(title, maxAmount) {
                 if (e.target.value === 'Online') {
                     txGroup.style.display = 'block';
                     txInput.setAttribute('required', 'true');
+                    bcGroup.style.display = 'none';
+                    bcNoInput.removeAttribute('required');
+                    bankInput.removeAttribute('required');
+                } else if (e.target.value === 'Bank Check') {
+                    txGroup.style.display = 'none';
+                    txInput.removeAttribute('required');
+                    txInput.value = '';
+                    bcGroup.style.display = 'block';
+                    bcNoInput.setAttribute('required', 'true');
+                    bankInput.setAttribute('required', 'true');
                 } else {
                     txGroup.style.display = 'none';
                     txInput.removeAttribute('required');
                     txInput.value = '';
+                    bcGroup.style.display = 'none';
+                    bcNoInput.removeAttribute('required');
+                    bankInput.removeAttribute('required');
                 }
             });
         });
@@ -96,8 +125,15 @@ function openPayPendingModal(title, maxAmount) {
             }
             const paymentMethod = newForm.querySelector('input[name="pay_pending_payment_method"]:checked').value;
             const transactionId = txInput.value.trim();
+            const bankCheckNumber = bcNoInput.value.trim();
+            const bankName = bankInput.value.trim();
+
             if (paymentMethod === 'Online' && !transactionId) {
                 window.showToast('Please enter a Transaction ID for online payments.', 'error');
+                return;
+            }
+            if (paymentMethod === 'Bank Check' && (!bankCheckNumber || !bankName)) {
+                window.showToast('Please enter both check number and bank name.', 'error');
                 return;
             }
             const date = dateInput.value;
@@ -107,7 +143,7 @@ function openPayPendingModal(title, maxAmount) {
             }
             newForm.removeEventListener('submit', onSubmit);
             modal.style.display = 'none';
-            resolve({ amountPaid, date, paymentMethod, transactionId: transactionId || null });
+            resolve({ amountPaid, date, paymentMethod, transactionId: transactionId || null, bankCheckNumber, bankName });
         };
         newForm.addEventListener('submit', onSubmit);
 
@@ -197,7 +233,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${window.formatDateDDMMYYYY(d.date)}</td>
                         <td>${d.category}</td>
                         <td>${formatHistoryCurrency(d.amount)}</td>
-                        <td>${d.payment_method} ${d.transaction_id ? '('+d.transaction_id+')' : ''}</td>
+                        <td>
+                            ${d.payment_method} 
+                            ${d.transaction_id ? '('+d.transaction_id+')' : ''} 
+                            ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                        </td>
                         <td>
                             ${isPending ? `<span class="badge-pending">${formatHistoryCurrency(d.pending_amount)}</span>` : formatHistoryCurrency(d.pending_amount)}
                         </td>
@@ -221,7 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <td>${i + 1}</td>
                                     <td>${window.formatDateDDMMYYYY(p.date)}</td>
                                     <td>${formatHistoryCurrency(p.amount_paid)}</td>
-                                    <td>${p.payment_method}${p.transaction_id ? ' (' + p.transaction_id + ')' : ''}</td>
+                                    <td>
+                                        ${p.payment_method}
+                                        ${p.transaction_id ? ' (' + p.transaction_id + ')' : ''}
+                                        ${p.payment_method === 'Bank Check' ? ` (${p.bank_check_number}, ${p.bank_name})` : ''}
+                                    </td>
                                 </tr>`).join('');
                             paymentHistoryHtml = `
                                 <h4 style="margin-top:15px; border-top:1px solid #eee; padding-top:10px; color:var(--secondary-blue);">Payment History</h4>
@@ -240,7 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
                             <p><strong>Category:</strong> ${d.category}</p>
                             <p><strong>Amount:</strong> ${formatHistoryCurrency(d.amount)}</p>
-                            <p><strong>Payment Method:</strong> ${d.payment_method} ${d.transaction_id ? `(${d.transaction_id})` : ''}</p>
+                            <p><strong>Payment Method:</strong> 
+                                ${d.payment_method} 
+                                ${d.transaction_id ? `(${d.transaction_id})` : ''} 
+                                ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                            </p>
                             <p><strong>Pending Amount:</strong> ${formatHistoryCurrency(d.pending_amount)}</p>
                             <p><strong>Last Cleared Date:</strong> ${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : 'N/A'}</p>
                             ${paymentHistoryHtml}

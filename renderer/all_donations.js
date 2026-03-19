@@ -182,7 +182,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${d.donor_name}</td>
                     <td>${d.category}</td>
                     <td>${formatAllCurrency(d.amount)}</td>
-                    <td>${d.payment_method} ${d.transaction_id ? '(' + d.transaction_id + ')' : ''}</td>
+                    <td>
+                        ${d.payment_method} 
+                        ${d.transaction_id ? '(' + d.transaction_id + ')' : ''}
+                        ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                    </td>
                     <td>
                         ${hasPending ? `<span class="badge-pending">${formatAllCurrency(d.pending_amount)}</span>` : formatAllCurrency(d.pending_amount)}
                     </td>
@@ -204,7 +208,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <td>${i + 1}</td>
                                 <td>${window.formatDateDDMMYYYY(p.date)}</td>
                                 <td>${formatAllCurrency(p.amount_paid)}</td>
-                                <td>${p.payment_method}${p.transaction_id ? ' (' + p.transaction_id + ')' : ''}</td>
+                                <td>
+                                    ${p.payment_method}
+                                    ${p.transaction_id ? ' (' + p.transaction_id + ')' : ''}
+                                    ${p.payment_method === 'Bank Check' ? ` (${p.bank_check_number}, ${p.bank_name})` : ''}
+                                </td>
                             </tr>`).join('');
                         paymentHistoryHtml = `
                             <h4 style="margin-top:15px; border-top:1px solid #eee; padding-top:10px; color:var(--secondary-blue);">Payment History</h4>
@@ -223,7 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
                         <p><strong>Category:</strong> ${d.category}</p>
                         <p><strong>Amount:</strong> ${formatAllCurrency(d.amount)}</p>
-                        <p><strong>Payment Method:</strong> ${d.payment_method} ${d.transaction_id ? `(${d.transaction_id})` : ''}</p>
+                        <p><strong>Payment Method:</strong> 
+                            ${d.payment_method} 
+                            ${d.transaction_id ? `(${d.transaction_id})` : ''} 
+                            ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                        </p>
                         <p><strong>Pending Amount:</strong> ${formatAllCurrency(d.pending_amount)}</p>
                         <p><strong>Last Cleared Date:</strong> ${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : 'N/A'}</p>
                         ${paymentHistoryHtml}

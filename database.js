@@ -29,11 +29,15 @@ function createTables() {
             amount REAL NOT NULL,
             payment_method TEXT NOT NULL,
             transaction_id TEXT,
+            bank_check_number TEXT,
+            bank_name TEXT,
             pending_amount REAL DEFAULT 0,
             cleared_date TEXT,
             FOREIGN KEY(donor_id) REFERENCES donors(id)
         )`, () => {
             db.run("ALTER TABLE donations ADD COLUMN cleared_date TEXT", () => {});
+            db.run("ALTER TABLE donations ADD COLUMN bank_check_number TEXT", () => {});
+            db.run("ALTER TABLE donations ADD COLUMN bank_name TEXT", () => {});
         });
 
         db.run(`CREATE TABLE IF NOT EXISTS expenses (
@@ -43,10 +47,14 @@ function createTables() {
             amount REAL NOT NULL,
             description TEXT,
             payment_method TEXT DEFAULT 'Offline',
-            transaction_id TEXT
+            transaction_id TEXT,
+            bank_check_number TEXT,
+            bank_name TEXT
         )`, () => {
              db.run("ALTER TABLE expenses ADD COLUMN payment_method TEXT DEFAULT 'Offline'", () => {});
              db.run("ALTER TABLE expenses ADD COLUMN transaction_id TEXT", () => {});
+             db.run("ALTER TABLE expenses ADD COLUMN bank_check_number TEXT", () => {});
+             db.run("ALTER TABLE expenses ADD COLUMN bank_name TEXT", () => {});
         });
 
         // Stores individual payment history per donation when clearing pending
@@ -57,8 +65,13 @@ function createTables() {
             amount_paid REAL NOT NULL,
             payment_method TEXT NOT NULL,
             transaction_id TEXT,
+            bank_check_number TEXT,
+            bank_name TEXT,
             FOREIGN KEY(donation_id) REFERENCES donations(id)
-        )`);
+        )`, () => {
+            db.run("ALTER TABLE pending_payments ADD COLUMN bank_check_number TEXT", () => {});
+            db.run("ALTER TABLE pending_payments ADD COLUMN bank_name TEXT", () => {});
+        });
 
         db.run(`CREATE TABLE IF NOT EXISTS bank_submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,11 +133,11 @@ const dbManager = {
             }
 
             const insertDonationSql = `
-                INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, pending_amount)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, bank_check_number, bank_name, pending_amount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             await runQuery(insertDonationSql, [
-                donorId, data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.pendingAmount
+                donorId, data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, data.pendingAmount
             ]);
 
             return { success: true };
@@ -141,11 +154,11 @@ const dbManager = {
 
             const updateSql = `
                 UPDATE donations
-                SET date = ?, category = ?, amount = ?, payment_method = ?, transaction_id = ?, pending_amount = ?
+                SET date = ?, category = ?, amount = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ?, pending_amount = ?
                 WHERE id = ?
             `;
             await runQuery(updateSql, [
-                data.date, data.category, data.amount, data.paymentMethod, data.transactionId, finalPending, data.id
+                data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, finalPending, data.id
             ]);
             return { success: true };
         } catch (error) {
@@ -157,7 +170,7 @@ const dbManager = {
     getDonorHistory: async (name) => {
         try {
             const sql = `
-                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.pending_amount, d.cleared_date
+                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
                 WHERE don.name = ?
@@ -241,8 +254,8 @@ const dbManager = {
 
     addExpense: async (data) => {
         try {
-            const sql = `INSERT INTO expenses (date, title, amount, description, payment_method, transaction_id) VALUES (?, ?, ?, ?, ?, ?)`;
-            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null]);
+            const sql = `INSERT INTO expenses (date, title, amount, description, payment_method, transaction_id, bank_check_number, bank_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.bankCheckNumber || null, data.bankName || null]);
             return { success: true };
         } catch (error) {
             console.error('Error adding expense:', error);
@@ -268,9 +281,9 @@ const dbManager = {
             let conditions = [];
             let params = [];
             if (search) {
-                conditions.push(`(title LIKE ? OR description LIKE ? OR payment_method LIKE ? OR CAST(amount AS TEXT) LIKE ?)`);
+                conditions.push(`(title LIKE ? OR description LIKE ? OR payment_method LIKE ? OR bank_check_number LIKE ? OR bank_name LIKE ? OR CAST(amount AS TEXT) LIKE ?)`);
                 const like = `%${search}%`;
-                params.push(like, like, like, like);
+                params.push(like, like, like, like, like, like);
             }
             if (dateFilter) {
                 conditions.push(`date = ?`);
@@ -299,8 +312,8 @@ const dbManager = {
 
     updateExpense: async (data) => {
         try {
-            const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ? WHERE id = ?`;
-            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.id]);
+            const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ? WHERE id = ?`;
+            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.bankCheckNumber || null, data.bankName || null, data.id]);
             return { success: true };
         } catch (error) {
             console.error('Error updating expense:', error);
@@ -311,7 +324,7 @@ const dbManager = {
     getAllDonations: async () => {
         try {
             const sql = `
-                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.pending_amount, d.cleared_date, don.name as donor_name
+                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, don.name as donor_name
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
                 ORDER BY d.date DESC, d.id DESC
@@ -331,9 +344,9 @@ const dbManager = {
             let conditions = [];
             let params = [];
             if (search) {
-                conditions.push(`(don.name LIKE ? OR d.category LIKE ? OR d.payment_method LIKE ? OR CAST(d.amount AS TEXT) LIKE ?)`);
+                conditions.push(`(don.name LIKE ? OR d.category LIKE ? OR d.payment_method LIKE ? OR d.bank_check_number LIKE ? OR d.bank_name LIKE ? OR CAST(d.amount AS TEXT) LIKE ?)`);
                 const like = `%${search}%`;
-                params.push(like, like, like, like);
+                params.push(like, like, like, like, like, like);
             }
             if (dateFilter) {
                 conditions.push(`d.date = ?`);
@@ -353,7 +366,7 @@ const dbManager = {
                 params
             );
             const donations = await allQuery(
-                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.pending_amount, d.cleared_date, don.name as donor_name
+                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, don.name as donor_name
                  FROM donations d JOIN donors don ON d.donor_id = don.id
                  ${whereSql} ORDER BY d.date DESC, d.id DESC LIMIT ? OFFSET ?`,
                 [...params, limit, offset]
@@ -380,8 +393,8 @@ const dbManager = {
 
                 // Store in payment history table (no new donation row)
                 await runQuery(
-                    `INSERT INTO pending_payments (donation_id, date, amount_paid, payment_method, transaction_id) VALUES (?, ?, ?, ?, ?)`,
-                    [donation.id, data.date, amountToClear, data.paymentMethod, data.transactionId]
+                    `INSERT INTO pending_payments (donation_id, date, amount_paid, payment_method, transaction_id, bank_check_number, bank_name) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [donation.id, data.date, amountToClear, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName]
                 );
 
                 // Update original donation row in-place
@@ -421,8 +434,8 @@ const dbManager = {
 
                 // Store in payment history table (no new donation row)
                 await runQuery(
-                    `INSERT INTO pending_payments (donation_id, date, amount_paid, payment_method, transaction_id) VALUES (?, ?, ?, ?, ?)`,
-                    [donation.id, data.date, amountToClear, data.paymentMethod, data.transactionId]
+                    `INSERT INTO pending_payments (donation_id, date, amount_paid, payment_method, transaction_id, bank_check_number, bank_name) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [donation.id, data.date, amountToClear, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName]
                 );
 
                 // Update original donation row in-place

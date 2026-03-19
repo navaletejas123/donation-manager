@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
     const transactionGroup = document.getElementById('transaction-id-group');
     const transactionInput = document.getElementById('transaction-id');
+    const bankCheckGroup = document.getElementById('bank-check-group');
+    const bankCheckNumberInput = document.getElementById('bank-check-number');
+    const bankNameInput = document.getElementById('bank-name');
     const amountInput = document.getElementById('donation-amount');
     const pendingAmountInput = document.getElementById('pending-amount');
     
@@ -72,10 +75,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.value === 'Online') {
                 transactionGroup.style.display = 'block';
                 transactionInput.setAttribute('required', 'true');
+                bankCheckGroup.style.display = 'none';
+                bankCheckNumberInput.removeAttribute('required');
+                bankNameInput.removeAttribute('required');
+            } else if (e.target.value === 'Bank Check') {
+                transactionGroup.style.display = 'none';
+                transactionInput.removeAttribute('required');
+                transactionInput.value = '';
+                bankCheckGroup.style.display = 'block';
+                bankCheckNumberInput.setAttribute('required', 'true');
+                bankNameInput.setAttribute('required', 'true');
             } else {
                 transactionGroup.style.display = 'none';
                 transactionInput.removeAttribute('required');
                 transactionInput.value = '';
+                bankCheckGroup.style.display = 'none';
+                bankCheckNumberInput.removeAttribute('required');
+                bankNameInput.removeAttribute('required');
+                bankCheckNumberInput.value = '';
+                bankNameInput.value = '';
             }
         });
     });
@@ -107,8 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
         const transactionId = transactionInput.value;
+        const bankCheckNumber = bankCheckNumberInput.value;
+        const bankName = bankNameInput.value;
 
-        const data = { id, name, date, category, amount, pendingAmount, paymentMethod, transactionId };
+        const data = { id, name, date, category, amount, pendingAmount, paymentMethod, transactionId, bankCheckNumber, bankName };
 
         try {
             let result;
@@ -163,6 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         transactionGroup.style.display = 'none';
         transactionInput.removeAttribute('required');
+        
+        bankCheckGroup.style.display = 'none';
+        bankCheckNumberInput.removeAttribute('required');
+        bankNameInput.removeAttribute('required');
+        bankCheckNumberInput.value = '';
+        bankNameInput.value = '';
         
         pendingAmountInput.removeAttribute('readonly');
         amountInput.removeAttribute('data-original-total');
@@ -223,11 +249,21 @@ document.addEventListener('DOMContentLoaded', () => {
             transactionGroup.style.display = 'block';
             transactionInput.value = donationData.transaction_id || '';
             transactionInput.setAttribute('required', 'true');
+            bankCheckGroup.style.display = 'none';
+        } else if (donationData.payment_method === 'Bank Check') {
+            document.querySelector('input[name="payment_method"][value="Bank Check"]').checked = true;
+            transactionGroup.style.display = 'none';
+            bankCheckGroup.style.display = 'block';
+            bankCheckNumberInput.value = donationData.bank_check_number || '';
+            bankNameInput.value = donationData.bank_name || '';
+            bankCheckNumberInput.setAttribute('required', 'true');
+            bankNameInput.setAttribute('required', 'true');
         } else {
             document.querySelector('input[name="payment_method"][value="Offline"]').checked = true;
             transactionGroup.style.display = 'none';
             transactionInput.value = '';
             transactionInput.removeAttribute('required');
+            bankCheckGroup.style.display = 'none';
         }
     };
     
