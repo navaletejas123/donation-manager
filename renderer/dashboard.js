@@ -10,18 +10,35 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+let currentClarkBalance = 0;
+
 window.refreshDashboard = async () => {
     try {
         const data = await window.api.getDashboardData();
         
         if (data.success) {
+            currentClarkBalance = data.availableClarkCash || 0;
+
             // Update summary cards
-            document.getElementById('total-cash-in').innerText = formatCurrency(data.totalCashIn);
-            document.getElementById('dashboard-total-pending').innerText = formatCurrency(data.totalPending);
+            const totalDonationsEl = document.getElementById('total-cash-in');
+            if (totalDonationsEl) totalDonationsEl.innerText = formatCurrency(data.totalCashIn || 0);
+
+            const totalPendingEl = document.getElementById('dashboard-total-pending');
+            if (totalPendingEl) totalPendingEl.innerText = formatCurrency(data.totalPending || 0);
             
             // Update total expense card
             const expenseEl = document.getElementById('total-expense');
             if (expenseEl) expenseEl.innerText = formatCurrency(data.totalExpense || 0);
+
+            // Update Total Cash and Total Online cards
+            const cashEl = document.getElementById('total-cash');
+            if (cashEl) cashEl.innerText = formatCurrency(data.totalCash || 0);
+
+            const onlineEl = document.getElementById('total-online');
+            if (onlineEl) onlineEl.innerText = formatCurrency(data.totalOnline || 0);
+
+            const clarkEl = document.getElementById('clark-cash');
+            if (clarkEl) clarkEl.innerText = formatCurrency(currentClarkBalance);
 
             // Update Charts
             updateBarChart(data.dateWiseDonations);
@@ -154,4 +171,71 @@ function updatePieChart(categories) {
 
 document.addEventListener('DOMContentLoaded', () => {
     window.refreshDashboard();
+
+    // Bank Submission Modal Logic
+    const clarkCard = document.getElementById('clark-cash-card');
+    const bankModal = document.getElementById('bank-submission-modal');
+    const bankModalAmount = document.getElementById('bank-modal-amount');
+    const closeBankModal = document.getElementById('close-bank-modal');
+    const cancelBankBtn = document.getElementById('cancel-bank-btn');
+    const confirmBankBtn = document.getElementById('confirm-bank-btn');
+
+    if (clarkCard) {
+        clarkCard.addEventListener('click', () => {
+            if (currentClarkBalance <= 0) {
+                window.showToast('Clark Cash balance is zero.', 'info');
+                return;
+            }
+            const passwordInput = document.getElementById('bank-password-input');
+            const passwordError = document.getElementById('bank-password-error');
+            if (passwordInput) passwordInput.value = '';
+            if (passwordError) passwordError.style.display = 'none';
+            
+            bankModalAmount.innerText = formatCurrency(currentClarkBalance);
+            bankModal.style.display = 'block';
+            setTimeout(() => passwordInput && passwordInput.focus(), 100);
+        });
+    }
+
+    const hideBankModal = () => { bankModal.style.display = 'none'; };
+    if (closeBankModal) closeBankModal.onclick = hideBankModal;
+    if (cancelBankBtn) cancelBankBtn.onclick = hideBankModal;
+    window.addEventListener('click', (e) => { if (e.target === bankModal) hideBankModal(); });
+
+    if (confirmBankBtn) {
+        confirmBankBtn.onclick = async () => {
+            const passwordInput = document.getElementById('bank-password-input');
+            const passwordError = document.getElementById('bank-password-error');
+            
+            if (passwordInput.value !== '9097') {
+                passwordError.style.display = 'block';
+                passwordInput.value = '';
+                passwordInput.focus();
+                return;
+            }
+            
+            passwordError.style.display = 'none';
+            
+            try {
+                confirmBankBtn.disabled = true;
+                confirmBankBtn.innerText = 'Processing...';
+                
+                const res = await window.api.addBankSubmission(currentClarkBalance);
+                if (res.success) {
+                    window.showToast('Cash submitted to bank successfully!', 'success');
+                    passwordInput.value = '';
+                    hideBankModal();
+                    await window.refreshDashboard();
+                } else {
+                    window.showToast('Error: ' + res.error, 'error');
+                }
+            } catch (err) {
+                console.error('Bank submission failed', err);
+                window.showToast('System Error: Could not connect to backend.', 'error');
+            } finally {
+                confirmBankBtn.disabled = false;
+                confirmBankBtn.innerText = 'Confirm Deposit';
+            }
+        };
+    }
 });

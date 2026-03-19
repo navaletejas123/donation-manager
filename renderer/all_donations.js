@@ -69,8 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
         controls.className = 'table-controls';
         controls.innerHTML = `
             <div class="filter-bar">
-                <input type="text" class="table-search-input" placeholder="Search by donor, category, amount...">
+            <div class="filterInputsContainer">
+            <input type="text" class="table-search-input" placeholder="Search by donor, category, amount...">
                 <input type="date" class="table-date-filter" title="Filter by date">
+            </div> 
+            <br />
+                
                 <select class="table-month-filter" title="Filter by month">
                     <option value="">All Months</option>
                     <option value="01">January</option>

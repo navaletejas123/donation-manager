@@ -59,6 +59,12 @@ async function updateExpenseTotalPill() {
         if (pill && dashData.success) {
             pill.textContent = `Total: ${formatExpenseCurrency(dashData.totalExpense || 0)}`;
         }
+        
+        // Update Clark Cash Available in Form
+        const balanceFormEl = document.getElementById('clark-cash-available-form');
+        if (balanceFormEl && dashData.success) {
+            balanceFormEl.textContent = formatExpenseCurrency(dashData.availableClarkCash || 0);
+        }
     } catch (e) { /* ignore */ }
 }
 
@@ -67,8 +73,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const expenseTableBody = document.querySelector('#expense-table tbody');
     let editingExpenseId = null;
 
+    // ---- DOM Elements for Dynamic Toggles ----
+    const clarkBalanceContainer = document.getElementById('clark-cash-balance-container');
+    const otherMethodGroup = document.getElementById('expense-other-method-group');
+    const otherMethodInput = document.getElementById('expense-other-method');
+    const transactionGroup = document.getElementById('expense-transaction-group');
+    const transactionInput = document.getElementById('expense-transaction-id');
+    const submitBtn = document.getElementById('expense-submit-btn');
+    const cancelEditBtn = document.getElementById('cancel-expense-edit-btn');
+
     // ---- SERVER-SIDE PAGINATION STATE ----
     let currentPage = 1;
+// ... (rest of the pagination state remains same)
+// ... (skipping unchanged code for brevity in this tool call)
+// ... (I will use multi_replace if needed, but for now I'll try to keep it contiguous)
     const itemsPerPage = 50;
     let currentSearch = '';
     let currentDate = '';
@@ -221,18 +239,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('expense-desc').value = e.description || '';
 
                     const pMethod = e.payment_method || 'Offline';
-                    document.querySelector(`input[name="expense_payment_method"][value="${pMethod}"]`).checked = true;
+                    // Map "Offline" back to "Clark Cash" for legacy data if needed, or handle specifically
+                    const radioToCheck = document.querySelector(`input[name="expense_payment_method"][value="${pMethod}"]`) || 
+                                       document.querySelector(`input[name="expense_payment_method"][value="Other"]`);
+                    
+                    if (radioToCheck) {
+                        radioToCheck.checked = true;
+                        if (radioToCheck.value === 'Other') {
+                            otherMethodGroup.style.display = 'block';
+                            otherMethodInput.value = pMethod;
+                            otherMethodInput.setAttribute('required', 'true');
+                        } else {
+                            otherMethodGroup.style.display = 'none';
+                            otherMethodInput.removeAttribute('required');
+                        }
+                    }
 
-                    const transGroup = document.getElementById('expense-transaction-group');
-                    const transInput = document.getElementById('expense-transaction-id');
                     if (pMethod === 'Online') {
-                        transGroup.style.display = 'block';
-                        transInput.value = e.transaction_id || '';
-                        transInput.setAttribute('required', 'true');
+                        transactionGroup.style.display = 'block';
+                        transactionInput.value = e.transaction_id || '';
+                        transactionInput.setAttribute('required', 'true');
                     } else {
-                        transGroup.style.display = 'none';
-                        transInput.value = '';
-                        transInput.removeAttribute('required');
+                        transactionGroup.style.display = 'none';
+                        transactionInput.value = '';
+                        transactionInput.removeAttribute('required');
+                    }
+                    
+                    // Show balance if Clark Cash
+                    if (pMethod === 'Clark Cash' || (pMethod === 'Offline')) {
+                        clarkBalanceContainer.style.display = 'block';
+                    } else {
+                        clarkBalanceContainer.style.display = 'none';
                     }
 
                     document.getElementById('expense-submit-btn').textContent = 'Update Expense';
@@ -330,8 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('expense-title').value;
         const amount = parseFloat(document.getElementById('expense-amount').value);
         const description = document.getElementById('expense-desc').value;
-        const paymentMethod = document.querySelector('input[name="expense_payment_method"]:checked').value;
-        const transactionId = document.getElementById('expense-transaction-id').value;
+        
+        let paymentMethod = document.querySelector('input[name="expense_payment_method"]:checked').value;
+        if (paymentMethod === 'Other') {
+            paymentMethod = otherMethodInput.value.trim() || 'Other';
+        }
+        
+        const transactionId = transactionInput.value;
 
         const data = { id: editingExpenseId, date, title, amount, description, paymentMethod, transactionId };
 
@@ -362,27 +404,52 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetExpenseForm() {
         expenseForm.reset();
         editingExpenseId = null;
-        document.getElementById('expense-submit-btn').textContent = 'Save Expense';
-        document.getElementById('cancel-expense-edit-btn').style.display = 'none';
-        document.querySelector('input[name="expense_payment_method"][value="Offline"]').checked = true;
-        document.getElementById('expense-transaction-group').style.display = 'none';
-        document.getElementById('expense-transaction-id').removeAttribute('required');
+        submitBtn.textContent = 'Save Expense';
+        cancelEditBtn.style.display = 'none';
+        
+        const clarkRadio = document.querySelector('input[name="expense_payment_method"][value="Clark Cash"]');
+        if (clarkRadio) clarkRadio.checked = true;
+        
+        clarkBalanceContainer.style.display = 'block';
+        otherMethodGroup.style.display = 'none';
+        otherMethodInput.removeAttribute('required');
+        transactionGroup.style.display = 'none';
+        transactionInput.removeAttribute('required');
+        
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('expense-date').value = today;
+        
+        updateExpenseTotalPill();
     }
 
     // Payment method toggle
     document.querySelectorAll('input[name="expense_payment_method"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
-            const transGroup = document.getElementById('expense-transaction-group');
-            const transInput = document.getElementById('expense-transaction-id');
+            // Show/Hide transaction ID
             if (e.target.value === 'Online') {
-                transGroup.style.display = 'block';
-                transInput.setAttribute('required', 'true');
+                transactionGroup.style.display = 'block';
+                transactionInput.setAttribute('required', 'true');
             } else {
-                transGroup.style.display = 'none';
-                transInput.removeAttribute('required');
-                transInput.value = '';
+                transactionGroup.style.display = 'none';
+                transactionInput.removeAttribute('required');
+                transactionInput.value = '';
+            }
+
+            // Show/Hide balance container
+            if (e.target.value === 'Clark Cash') {
+                clarkBalanceContainer.style.display = 'block';
+            } else {
+                clarkBalanceContainer.style.display = 'none';
+            }
+
+            // Show/Hide other input
+            if (e.target.value === 'Other') {
+                otherMethodGroup.style.display = 'block';
+                otherMethodInput.setAttribute('required', 'true');
+            } else {
+                otherMethodGroup.style.display = 'none';
+                otherMethodInput.removeAttribute('required');
+                otherMethodInput.value = '';
             }
         });
     });

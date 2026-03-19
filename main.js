@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, Menu, globalShortcut } = require('electron'
 const path = require('path');
 const dbManager = require('./database');
 
+const isDev = !app.isPackaged;
+
 let mainWindow;
 
 function createWindow() {
@@ -64,6 +66,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
     createWindow();
+
+    ipcMain.handle('add-bank-submission', async (event, amount) => {
+        return await dbManager.addBankSubmission(amount);
+    });
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();

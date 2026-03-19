@@ -59,6 +59,12 @@ function createTables() {
             transaction_id TEXT,
             FOREIGN KEY(donation_id) REFERENCES donations(id)
         )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS bank_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            amount REAL NOT NULL
+        )`);
         // Indexes for large data performance
         db.run(`CREATE INDEX IF NOT EXISTS idx_donations_donor_id ON donations(donor_id)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_donations_date ON donations(date)`);
@@ -159,7 +165,18 @@ const dbManager = {
             `;
             const donations = await allQuery(sql, [name]);
 
-            let totalPaid = 0;
+            // Get total from pending_payments for this donor
+            const pendingPaymentsSql = `
+                SELECT SUM(pp.amount_paid) as total
+                FROM pending_payments pp
+                JOIN donations d ON pp.donation_id = d.id
+                JOIN donors don ON d.donor_id = don.id
+                WHERE don.name = ?
+            `;
+            const pendingPaymentsResult = await getQuery(pendingPaymentsSql, [name]);
+            const clearedTotal = pendingPaymentsResult.total || 0;
+
+            let totalPaid = clearedTotal;
             let totalPending = 0;
             
             donations.forEach(d => {
@@ -176,11 +193,29 @@ const dbManager = {
 
     getDashboardData: async () => {
         try {
-            const cashInResult = await getQuery(`SELECT SUM(amount) as total FROM donations`);
+            // Get initial payments from donations
+            const cashFromDonations = await getQuery(`SELECT SUM(amount) as total FROM donations WHERE payment_method = 'Offline'`);
+            const onlineFromDonations = await getQuery(`SELECT SUM(amount) as total FROM donations WHERE payment_method = 'Online'`);
+            
+            // Get subsequent payments from pending_payments
+            const cashFromPending = await getQuery(`SELECT SUM(amount_paid) as total FROM pending_payments WHERE payment_method = 'Offline'`);
+            const onlineFromPending = await getQuery(`SELECT SUM(amount_paid) as total FROM pending_payments WHERE payment_method = 'Online'`);
+
+            const totalCash = (cashFromDonations.total || 0) + (cashFromPending.total || 0);
+            const totalOnline = (onlineFromDonations.total || 0) + (onlineFromPending.total || 0);
+            
             const pendingResult = await getQuery(`SELECT SUM(pending_amount) as total FROM donations`);
             const expenseResult = await getQuery(`SELECT SUM(amount) as total FROM expenses`);
 
-            const totalCashIn = cashInResult.total || 0;
+            // Calculate Clark Cash Balance (Total Cash Donations - Clark Cash Expenses - Bank Submissions)
+            const clarkCashExpensesResult = await getQuery(`SELECT SUM(amount) as total FROM expenses WHERE payment_method = 'Clark Cash'`);
+            const bankSubmissionsResult = await getQuery(`SELECT SUM(amount) as total FROM bank_submissions`);
+            
+            const totalClarkCashExpenses = clarkCashExpensesResult.total || 0;
+            const totalBankSubmissions = bankSubmissionsResult.total || 0;
+            const availableClarkCash = totalCash - totalClarkCashExpenses - totalBankSubmissions;
+
+            const totalCashIn = totalCash + totalOnline;
             const totalPending = pendingResult.total || 0;
             const totalExpense = expenseResult.total || 0;
 
@@ -192,6 +227,9 @@ const dbManager = {
                 totalCashIn,
                 totalPending,
                 totalExpense,
+                totalCash,
+                totalOnline,
+                availableClarkCash,
                 dateWiseDonations,
                 categoryWiseDonations
             };
@@ -450,6 +488,17 @@ const dbManager = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting expense:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    addBankSubmission: async (amount) => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            await runQuery(`INSERT INTO bank_submissions (date, amount) VALUES (?, ?)`, [today, amount]);
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding bank submission:', error);
             return { success: false, error: error.message };
         }
     }

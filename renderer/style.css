@@ -198,6 +198,71 @@ body {
     color: #7e22ce;
 }
 
+.card.total-cash {
+    background: #f0fdfa; /* Cyan/Teal background */
+    border-top-color: #0d9488; /* Teal border */
+}
+
+.card.total-cash .amount {
+    color: #0f766e;
+}
+
+.card.total-online {
+    background: #eff6ff; /* Blue background */
+    border-top-color: #2563eb; /* Blue border */
+}
+
+.card.total-online .amount {
+    color: #1d4ed8;
+}
+
+.card.clark-cash {
+    background: #fffbeb; /* Amber background */
+    border-top-color: #f59e0b; /* Amber border */
+}
+
+.card.clark-cash .amount {
+    color: #d97706;
+}
+
+#clark-cash-card {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+#clark-cash-card::after {
+    content: '\f19c'; /* University icon */
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 14px;
+    color: rgba(217, 119, 6, 0.15);
+    transition: all 0.3s ease;
+}
+
+#clark-cash-card:hover {
+    background: #fff9e6;
+    border-top-color: #d97706;
+}
+
+#clark-cash-card:hover::after {
+    color: rgba(217, 119, 6, 0.3);
+    transform: scale(1.2);
+}
+
+#clark-cash-card:active {
+    transform: scale(0.98);
+}
+
+#bank-password-input:focus {
+    outline: none;
+    border-color: #d97706;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
+}
+
 @media (max-width: 768px) {
     .summary-cards {
         grid-template-columns: 1fr;
@@ -581,13 +646,6 @@ tbody tr:hover {
     margin-bottom: 12px;
 }
 
-.filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
 .table-search-input {
     width: 180px;
     padding: 8px 14px;
@@ -803,4 +861,9 @@ tbody tr:hover {
     margin: 0;
     font-size: 16px;
     font-weight: 500;
+}
+
+.filterInputsContainer {
+    display: flex;
+    gap: 10px;
 }

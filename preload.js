@@ -18,12 +18,11 @@ contextBridge.exposeInMainWorld('api', {
     getPendingPayments: (donationId) => ipcRenderer.invoke('get-pending-payments', donationId),
     deleteDonation: (id) => ipcRenderer.invoke('delete-donation', id),
     deleteExpense: (id) => ipcRenderer.invoke('delete-expense', id),
+    addBankSubmission: (amount) => ipcRenderer.invoke('add-bank-submission', amount),
 
      windowMinimize: () => ipcRenderer.send('window-minimize'),
     windowMaximize: () => ipcRenderer.send('window-maximize'),
     windowClose: () => ipcRenderer.send('window-close'),
 });
-
-
 
 
