@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!data.success) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center">Error loading donations.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="text-center">Error loading donations.</td></tr>`;
                 return;
             }
 
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tbody.innerHTML = '';
             if (data.donations.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center">No donations found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="text-center">No donations found.</td></tr>`;
                 return;
             }
 
@@ -181,11 +181,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${window.formatDateDDMMYYYY(d.date)}</td>
                     <td>${d.donor_name}</td>
                     <td>${d.category}</td>
+                    <td>${d.reset_number || '-'}</td>
                     <td>${formatAllCurrency(d.amount)}</td>
                     <td>
-                        ${d.payment_method} 
-                        ${d.transaction_id ? '(' + d.transaction_id + ')' : ''}
-                        ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                        ${hasPending ? 'null' : `
+                            ${d.payment_method} 
+                            ${d.transaction_id ? '(' + d.transaction_id + ')' : ''}
+                            ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                        `}
                     </td>
                     <td>
                         ${hasPending ? `<span class="badge-pending">${formatAllCurrency(d.pending_amount)}</span>` : formatAllCurrency(d.pending_amount)}
@@ -230,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Donor:</strong> ${d.donor_name}</p>
                         <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
                         <p><strong>Category:</strong> ${d.category}</p>
+                        <p><strong>Reset Number:</strong> ${d.reset_number || 'N/A'}</p>
                         <p><strong>Amount:</strong> ${formatAllCurrency(d.amount)}</p>
                         <p><strong>Payment Method:</strong> 
                             ${d.payment_method} 
@@ -267,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (err) {
             console.error('Error loading all donations', err);
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center">Failed to load data.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center">Failed to load data.</td></tr>`;
         }
     };
 

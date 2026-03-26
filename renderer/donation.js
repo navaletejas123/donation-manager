@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bankNameInput = document.getElementById('bank-name');
     const amountInput = document.getElementById('donation-amount');
     const pendingAmountInput = document.getElementById('pending-amount');
+    const resetNumberInput = document.getElementById('reset-number');
     
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const formTitle = document.getElementById('donation-form-title');
@@ -98,6 +99,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    function updatePaymentMethodState() {
+        const pendingAmount = parseFloat(pendingAmountInput.value || 0);
+        const isFrozen = pendingAmount > 0;
+
+        paymentRadios.forEach(radio => {
+            radio.disabled = isFrozen;
+            if (isFrozen && radio.value === 'Offline') {
+                radio.checked = true;
+            }
+        });
+
+        if (isFrozen) {
+            transactionGroup.style.display = 'none';
+            transactionInput.removeAttribute('required');
+            transactionInput.value = '';
+            bankCheckGroup.style.display = 'none';
+            bankCheckNumberInput.removeAttribute('required');
+            bankNameInput.removeAttribute('required');
+            bankCheckNumberInput.value = '';
+            bankNameInput.value = '';
+        }
+    }
+
+    pendingAmountInput.addEventListener('input', updatePaymentMethodState);
+
     amountInput.addEventListener('input', (e) => {
         const originalTotalStr = amountInput.dataset.originalTotal;
         if (originalTotalStr) {
@@ -105,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentAmount = parseFloat(amountInput.value) || 0;
             const newPending = Math.max(0, originalTotal - currentAmount);
             pendingAmountInput.value = newPending.toFixed(2);
+            updatePaymentMethodState();
         }
     });
 
@@ -127,8 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const transactionId = transactionInput.value;
         const bankCheckNumber = bankCheckNumberInput.value;
         const bankName = bankNameInput.value;
-
-        const data = { id, name, date, category, amount, pendingAmount, paymentMethod, transactionId, bankCheckNumber, bankName };
+        const resetNumber = resetNumberInput.value.trim();
+        
+        const data = { id, name, date, category, amount, pendingAmount, paymentMethod, transactionId, bankCheckNumber, bankName, resetNumber };
 
         try {
             let result;
@@ -193,10 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingAmountInput.removeAttribute('readonly');
         amountInput.removeAttribute('data-original-total');
         
+        updatePaymentMethodState();
+        
         autocompleteList.innerHTML = '';
         
         // Reset category explicitly
         categorySelect.value = "";
+        resetNumberInput.value = '';
     }
 
     function switchToPreviousSection() {
@@ -226,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         donorNameInput.setAttribute('readonly', 'true'); // Prevents changing donor during edit per specs usually
         
         document.getElementById('donation-date').value = donationData.date;
+        resetNumberInput.value = donationData.reset_number || '';
         amountInput.value = donationData.amount;
         pendingAmountInput.value = donationData.pending_amount;
         pendingAmountInput.setAttribute('readonly', 'true'); // Do not allow manual clearing via edit
@@ -265,6 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
             transactionInput.removeAttribute('required');
             bankCheckGroup.style.display = 'none';
         }
+
+        updatePaymentMethodState();
     };
     
     // Feature 13: Add enter key feature to all buttons globally

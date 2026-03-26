@@ -149,3 +149,11 @@ ipcMain.handle('get-paginated-donations', async (event, params) => {
 ipcMain.handle('delete-expense', async (event, id) => {
     return await dbManager.deleteExpense(id);
 });
+
+ipcMain.handle('get-paginated-bank-submissions', async (event, params) => {
+    return await dbManager.getPaginatedBankSubmissions(params);
+});
+
+ipcMain.handle('get-analytics-data', async (event) => {
+    return await dbManager.getAnalyticsData();
+});

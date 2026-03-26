@@ -232,11 +232,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${index}</td>
                         <td>${window.formatDateDDMMYYYY(d.date)}</td>
                         <td>${d.category}</td>
+                        <td>${d.reset_number || '-'}</td>
                         <td>${formatHistoryCurrency(d.amount)}</td>
                         <td>
-                            ${d.payment_method} 
-                            ${d.transaction_id ? '('+d.transaction_id+')' : ''} 
-                            ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                            ${isPending ? 'null' : `
+                                ${d.payment_method} 
+                                ${d.transaction_id ? '(' + d.transaction_id + ')' : ''} 
+                                ${d.payment_method === 'Bank Check' ? `(${d.bank_check_number}, ${d.bank_name})` : ''}
+                            `}
                         </td>
                         <td>
                             ${isPending ? `<span class="badge-pending">${formatHistoryCurrency(d.pending_amount)}</span>` : formatHistoryCurrency(d.pending_amount)}
@@ -283,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Donor:</strong> ${name}</p>
                             <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
                             <p><strong>Category:</strong> ${d.category}</p>
+                            <p><strong>Reset Number:</strong> ${d.reset_number || 'N/A'}</p>
                             <p><strong>Amount:</strong> ${formatHistoryCurrency(d.amount)}</p>
                             <p><strong>Payment Method:</strong> 
                                 ${d.payment_method} 
@@ -334,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const searchWrapper = document.querySelector('#history-table').parentElement;
                 
                 // Need to bypass setupPagination wrapper if it exists, safest way is replace inner html
-                historyTableBody.innerHTML = `<tr><td colspan="8" class="text-center">No history found for donor: ${name}</td></tr>`;
+                historyTableBody.innerHTML = `<tr><td colspan="9" class="text-center">No history found for donor: ${name}</td></tr>`;
             }
         } catch (err) {
             console.error(err);

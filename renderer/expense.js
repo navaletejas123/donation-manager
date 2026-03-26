@@ -244,6 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tr.querySelector('.edit-btn').addEventListener('click', () => {
                     editingExpenseId = e.id;
+                    window.editingExpenseOriginalAmount = e.amount;
+                    window.editingExpenseOriginalMethod = e.payment_method || 'Offline';
                     document.getElementById('expense-date').value = e.date;
                     document.getElementById('expense-title').value = e.title;
                     document.getElementById('expense-amount').value = e.amount;
@@ -397,6 +399,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const bankCheckNumber = bankCheckNumberInput.value;
         const bankName = bankNameInput.value;
 
+        if (paymentMethod === 'Clark Cash') {
+            const dashData = await window.api.getDashboardData();
+            let available = dashData.availableClarkCash || 0;
+            
+            // If editing, add back the original amount if it was also Clark Cash
+            if (editingExpenseId) {
+                if (window.editingExpenseOriginalMethod === 'Clark Cash') {
+                    available += window.editingExpenseOriginalAmount || 0;
+                }
+            }
+
+            if (available <= 0) {
+                window.showToast('Clark Cash balance is zero. Cannot add expense.', 'error');
+                return;
+            }
+            if (amount > available) {
+                window.showToast(`Insufficient Clark Cash balance (Available: ₹${available.toFixed(2)}).`, 'error');
+                return;
+            }
+        }
+
         const data = { id: editingExpenseId, date, title, amount, description, paymentMethod, transactionId, bankCheckNumber, bankName };
 
         try {
@@ -426,6 +449,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetExpenseForm() {
         expenseForm.reset();
         editingExpenseId = null;
+        window.editingExpenseOriginalAmount = 0;
+        window.editingExpenseOriginalMethod = '';
         submitBtn.textContent = 'Save Expense';
         cancelEditBtn.style.display = 'none';
         

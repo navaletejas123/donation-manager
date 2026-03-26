@@ -43,44 +43,247 @@
         <main class="main-content">
             <!-- DASHBOARD SECTION -->
             <section id="dashboard-section" class="content-section active">
-                <header class="section-header">
-                    <h1>Dashboard</h1>
-                </header>
-                <div class="summary-cards">
-                    <div class="card cash-in">
-                        <h3>Total Donations</h3>
-                        <p id="total-cash-in" class="amount">₹0.00</p>
+                <!-- Dashboard Header -->
+                <div class="dashboard-header">
+                    <div class="dashboard-title-block">
+                        <h1 class="dashboard-title">Dashboard</h1>
+                        <p class="dashboard-subtitle">Financial overview &amp; analytics</p>
                     </div>
-                    <div class="card total-pending">
-                        <h3>Total Pending</h3>
-                        <p id="dashboard-total-pending" class="amount">₹0.00</p>
-                    </div>
-                    <div class="card total-expense">
-                        <h3>Total Expense</h3>
-                        <p id="total-expense" class="amount">₹0.00</p>
-                    </div>
-                    <div class="card total-cash">
-                        <h3>Total Cash</h3>
-                        <p id="total-cash" class="amount">₹0.00</p>
-                    </div>
-                    <div class="card total-online">
-                        <h3>Total Online</h3>
-                        <p id="total-online" class="amount">₹0.00</p>
-                    </div>
-                    <div class="card clark-cash" id="clark-cash-card" title="Click to submit to bank">
-                        <h3>Clark Cash</h3>
-                        <p id="clark-cash" class="amount">₹0.00</p>
-                        <small style="font-size: 10px; color: #d97706; margin-top: 5px; display: block;">Click to Deposit</small>
+                    <div class="dashboard-meta">
+                        <span class="meta-badge" id="dash-donor-count"><i class="bi bi-people-fill"></i> — Donors</span>
+                        <span class="meta-badge" id="dash-donation-count"><i class="bi bi-receipt"></i> — Donations</span>
+                        <span class="meta-badge last-updated" id="dash-last-updated"><i class="bi bi-clock"></i> Just now</span>
                     </div>
                 </div>
-                <div class="charts-container">
-                    <div class="chart-wrapper">
-                        <h3>Donations by Date</h3>
-                        <canvas id="mainChart"></canvas>
+
+                <!-- KPI Summary Cards -->
+                <div class="summary-cards">
+                    <div class="card cash-in">
+                        <div class="card-icon-wrap"><i class="bi bi-graph-up-arrow" style="color:#22c55e"></i></div>
+                        <div class="card-body-text">
+                            <h3>Total Donations</h3>
+                            <p id="total-cash-in" class="amount">₹0.00</p>
+                        </div>
                     </div>
-                    <div class="chart-wrapper">
-                        <h3>Donations by Category</h3>
-                        <canvas id="pieChart"></canvas>
+                    <div class="card total-pending">
+                        <div class="card-icon-wrap"><i class="bi bi-hourglass-split" style="color:#ef4444"></i></div>
+                        <div class="card-body-text">
+                            <h3>Total Pending</h3>
+                            <p id="dashboard-total-pending" class="amount">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="card total-expense">
+                        <div class="card-icon-wrap"><i class="bi bi-wallet2" style="color:#8b5cf6"></i></div>
+                        <div class="card-body-text">
+                            <h3>Total Expense</h3>
+                            <p id="total-expense" class="amount">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="card total-cash">
+                        <div class="card-icon-wrap"><i class="bi bi-cash-stack" style="color:#0d9488"></i></div>
+                        <div class="card-body-text">
+                            <h3>Total Cash</h3>
+                            <p id="total-cash" class="amount">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="card total-online">
+                        <div class="card-icon-wrap"><i class="bi bi-phone" style="color:#2563eb"></i></div>
+                        <div class="card-body-text">
+                            <h3>Total Online</h3>
+                            <p id="total-online" class="amount">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="card clark-cash" id="clark-cash-card" title="Click to submit to bank">
+                        <div class="card-icon-wrap"><i class="bi bi-bank" style="color:#d97706"></i></div>
+                        <div class="card-body-text">
+                            <h3>Clark Cash</h3>
+                            <p id="clark-cash" class="amount">₹0.00</p>
+                            <small class="card-hint">Click to Deposit</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="quick-stats-row">
+                    <div class="quick-stat-pill">
+                        <div class="quick-stat-icon blue"><i class="bi bi-calculator"></i></div>
+                        <div class="quick-stat-text">
+                            <span class="quick-stat-label">Avg Donation</span>
+                            <span class="quick-stat-value" id="qs-avg-donation">₹0</span>
+                        </div>
+                    </div>
+                    <div class="quick-stat-pill">
+                        <div class="quick-stat-icon green"><i class="bi bi-calendar-check"></i></div>
+                        <div class="quick-stat-text">
+                            <span class="quick-stat-label">This Month</span>
+                            <span class="quick-stat-value" id="qs-this-month">₹0</span>
+                        </div>
+                    </div>
+                    <div class="quick-stat-pill">
+                        <div class="quick-stat-icon violet"><i class="bi bi-people"></i></div>
+                        <div class="quick-stat-text">
+                            <span class="quick-stat-label">Total Donors</span>
+                            <span class="quick-stat-value" id="qs-total-donors">0</span>
+                        </div>
+                    </div>
+                    <div class="quick-stat-pill">
+                        <div class="quick-stat-icon amber"><i class="bi bi-arrow-up-right"></i></div>
+                        <div class="quick-stat-text">
+                            <span class="quick-stat-label">Net Balance</span>
+                            <span class="quick-stat-value" id="qs-net-balance">₹0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 1: Monthly Trend (wide) + Category Donut -->
+                <div class="charts-grid charts-grid-70-30">
+                    <div class="chart-card chart-card-primary">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-bar-chart-line-fill"></i> Monthly Donations vs Expenses</h3>
+                                <p class="chart-card-sub">Last 12 months comparison</p>
+                            </div>
+                            <span class="chart-badge chart-badge-blue">12 Months</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:260px">
+                            <canvas id="monthlyCompareChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-pie-chart-fill"></i> Category Breakdown</h3>
+                                <p class="chart-card-sub">By donation amount</p>
+                            </div>
+                            <span class="chart-badge chart-badge-purple">All Time</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:260px">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Payment Methods + Expense Breakdown -->
+                <div class="charts-grid charts-grid-50-50">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-credit-card-2-front-fill"></i> Payment Methods</h3>
+                                <p class="chart-card-sub">Revenue distribution by method</p>
+                            </div>
+                            <span class="chart-badge chart-badge-teal">All Time</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:240px">
+                            <canvas id="paymentMethodChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-pie-chart"></i> Expense Breakdown</h3>
+                                <p class="chart-card-sub">Spending by payment method</p>
+                            </div>
+                            <span class="chart-badge chart-badge-indigo">All Time</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:240px">
+                            <canvas id="expenseBreakdownChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Top Donors (horizontal bar) + Yearly Overview -->
+                <div class="charts-grid charts-grid-50-50">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-trophy-fill"></i> Top 10 Donors</h3>
+                                <p class="chart-card-sub">Highest contributors</p>
+                            </div>
+                            <span class="chart-badge chart-badge-amber">All Time</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:280px">
+                            <canvas id="topDonorsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-calendar3"></i> Yearly Overview</h3>
+                                <p class="chart-card-sub">Donations vs Expenses by year</p>
+                            </div>
+                            <span class="chart-badge chart-badge-rose">Yearly</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:280px">
+                            <canvas id="yearlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 4: Daily Donation Trend (full width) -->
+                <div class="charts-grid charts-grid-full">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-activity"></i> Daily Donation Trend</h3>
+                                <p class="chart-card-sub">Last 30 days activity</p>
+                            </div>
+                            <span class="chart-badge chart-badge-green">30 Days</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:220px">
+                            <canvas id="dailyTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 5: All-time date-wise bar chart (full width) -->
+                <div class="charts-grid charts-grid-full">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-bar-chart-fill"></i> All-Time Donations by Date</h3>
+                                <p class="chart-card-sub">Complete donation history</p>
+                            </div>
+                            <span class="chart-badge chart-badge-blue">Full History</span>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:220px">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 6: Clark Cash History Table (Full Width) -->
+                <div class="charts-grid charts-grid-full">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title"><i class="bi bi-clock-history"></i> Clark Cash History</h3>
+                                <p class="chart-card-sub">Recent deposits to bank</p>
+                            </div>
+                            <span class="chart-badge chart-badge-amber">History</span>
+                        </div>
+                        <div class="table-container" style="box-shadow: none; border: 1px solid #e2e8f0; padding: 0;">
+                            <table id="clark-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Data injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination Bar -->
+                        <div class="pagination-bar" id="clark-history-pagination">
+                            <span class="pagination-info" id="clark-history-info">Page 1 of 1</span>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn" id="clark-history-prev" disabled>Previous</button>
+                                <button class="pagination-btn" id="clark-history-next" disabled>Next</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -97,6 +300,10 @@
                             <input type="text" id="donor-name" required autocomplete="off"
                                 placeholder="Start typing name...">
                             <ul id="autocomplete-list" class="autocomplete-items"></ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="reset-number">Reset Number</label>
+                            <input type="text" id="reset-number" placeholder="Enter reset number">
                         </div>
                         <div class="form-row">
                             <div class="form-group">
@@ -189,6 +396,7 @@
                                 <th>Date</th>
                                 <th>Donor</th>
                                 <th>Category</th>
+                                <th>Reset No.</th>
                                 <th>Amount</th>
                                 <th>Payment Method</th>
                                 <th>Pending</th>
@@ -236,6 +444,7 @@
                                 <th>#</th>
                                 <th>Date</th>
                                 <th>Category</th>
+                                <th>Reset No.</th>
                                 <th>Amount</th>
                                 <th>Payment Method</th>
                                 <th>Pending</th>

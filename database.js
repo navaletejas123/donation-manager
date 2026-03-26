@@ -38,6 +38,7 @@ function createTables() {
             db.run("ALTER TABLE donations ADD COLUMN cleared_date TEXT", () => {});
             db.run("ALTER TABLE donations ADD COLUMN bank_check_number TEXT", () => {});
             db.run("ALTER TABLE donations ADD COLUMN bank_name TEXT", () => {});
+            db.run("ALTER TABLE donations ADD COLUMN reset_number TEXT", () => {});
         });
 
         db.run(`CREATE TABLE IF NOT EXISTS expenses (
@@ -76,8 +77,11 @@ function createTables() {
         db.run(`CREATE TABLE IF NOT EXISTS bank_submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
+            time TEXT,
             amount REAL NOT NULL
-        )`);
+        )`, () => {
+            db.run("ALTER TABLE bank_submissions ADD COLUMN time TEXT", () => {});
+        });
         // Indexes for large data performance
         db.run(`CREATE INDEX IF NOT EXISTS idx_donations_donor_id ON donations(donor_id)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_donations_date ON donations(date)`);
@@ -133,11 +137,11 @@ const dbManager = {
             }
 
             const insertDonationSql = `
-                INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, bank_check_number, bank_name, pending_amount)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, bank_check_number, bank_name, pending_amount, reset_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             await runQuery(insertDonationSql, [
-                donorId, data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, data.pendingAmount
+                donorId, data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, data.pendingAmount, data.resetNumber
             ]);
 
             return { success: true };
@@ -154,11 +158,11 @@ const dbManager = {
 
             const updateSql = `
                 UPDATE donations
-                SET date = ?, category = ?, amount = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ?, pending_amount = ?
+                SET date = ?, category = ?, amount = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ?, pending_amount = ?, reset_number = ?
                 WHERE id = ?
             `;
             await runQuery(updateSql, [
-                data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, finalPending, data.id
+                data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, finalPending, data.resetNumber, data.id
             ]);
             return { success: true };
         } catch (error) {
@@ -170,7 +174,7 @@ const dbManager = {
     getDonorHistory: async (name) => {
         try {
             const sql = `
-                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date
+                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
                 WHERE don.name = ?
@@ -178,26 +182,16 @@ const dbManager = {
             `;
             const donations = await allQuery(sql, [name]);
 
-            // Get total from pending_payments for this donor
-            const pendingPaymentsSql = `
-                SELECT SUM(pp.amount_paid) as total
-                FROM pending_payments pp
-                JOIN donations d ON pp.donation_id = d.id
-                JOIN donors don ON d.donor_id = don.id
-                WHERE don.name = ?
-            `;
-            const pendingPaymentsResult = await getQuery(pendingPaymentsSql, [name]);
-            const clearedTotal = pendingPaymentsResult.total || 0;
-
-            let totalPaid = clearedTotal;
+            let totalPaid = 0;
             let totalPending = 0;
             
             donations.forEach(d => {
-                totalPaid += d.amount;
+                totalPaid += (d.amount - d.pending_amount);
                 totalPending += d.pending_amount;
             });
 
             return { success: true, donations, totalPaid, totalPending };
+
         } catch (error) {
             console.error('Error fetching donor history:', error);
             return { success: false, error: error.message };
@@ -206,18 +200,32 @@ const dbManager = {
 
     getDashboardData: async () => {
         try {
-            // Get initial payments from donations
-            const cashFromDonations = await getQuery(`SELECT SUM(amount) as total FROM donations WHERE payment_method = 'Offline'`);
-            const onlineFromDonations = await getQuery(`SELECT SUM(amount) as total FROM donations WHERE payment_method = 'Online'`);
+            // Calculate everything based on actual payments made
+            // Total Paid = (Initial Payments) + (Subsequent Payments)
+            // Initial Paid for a donation = amount - pending_amount - (sum of all pending_payments for this donation)
             
-            // Get subsequent payments from pending_payments
-            const cashFromPending = await getQuery(`SELECT SUM(amount_paid) as total FROM pending_payments WHERE payment_method = 'Offline'`);
-            const onlineFromPending = await getQuery(`SELECT SUM(amount_paid) as total FROM pending_payments WHERE payment_method = 'Online'`);
+            // 1. Get initial payments from donations
+            const initialPaymentsResult = await getQuery(`
+                SELECT 
+                    SUM(CASE WHEN payment_method = 'Offline' THEN (amount - pending_amount - (SELECT COALESCE(SUM(amount_paid), 0) FROM pending_payments WHERE donation_id = d.id)) ELSE 0 END) as initial_cash,
+                    SUM(CASE WHEN payment_method = 'Online' THEN (amount - pending_amount - (SELECT COALESCE(SUM(amount_paid), 0) FROM pending_payments WHERE donation_id = d.id)) ELSE 0 END) as initial_online,
+                    SUM(pending_amount) as total_pending
+                FROM donations d
+            `);
 
-            const totalCash = (cashFromDonations.total || 0) + (cashFromPending.total || 0);
-            const totalOnline = (onlineFromDonations.total || 0) + (onlineFromPending.total || 0);
-            
-            const pendingResult = await getQuery(`SELECT SUM(pending_amount) as total FROM donations`);
+            // 2. Get subsequent payments from pending_payments
+            const subsequentPaymentsResult = await getQuery(`
+                SELECT 
+                    SUM(CASE WHEN payment_method = 'Offline' THEN amount_paid ELSE 0 END) as subsequent_cash,
+                    SUM(CASE WHEN payment_method = 'Online' THEN amount_paid ELSE 0 END) as subsequent_online
+                FROM pending_payments
+            `);
+
+            const totalCash = (initialPaymentsResult.initial_cash || 0) + (subsequentPaymentsResult.subsequent_cash || 0);
+            const totalOnline = (initialPaymentsResult.initial_online || 0) + (subsequentPaymentsResult.subsequent_online || 0);
+            const totalPending = initialPaymentsResult.total_pending || 0;
+            const totalCashIn = totalCash + totalOnline;
+
             const expenseResult = await getQuery(`SELECT SUM(amount) as total FROM expenses`);
 
             // Calculate Clark Cash Balance (Total Cash Donations - Clark Cash Expenses - Bank Submissions)
@@ -228,8 +236,6 @@ const dbManager = {
             const totalBankSubmissions = bankSubmissionsResult.total || 0;
             const availableClarkCash = totalCash - totalClarkCashExpenses - totalBankSubmissions;
 
-            const totalCashIn = totalCash + totalOnline;
-            const totalPending = pendingResult.total || 0;
             const totalExpense = expenseResult.total || 0;
 
             const dateWiseDonations = await allQuery(`SELECT date, SUM(amount) as total FROM donations GROUP BY date ORDER BY date ASC`);
@@ -248,6 +254,118 @@ const dbManager = {
             };
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    getAnalyticsData: async () => {
+        try {
+            // Monthly donations - initial paid part
+            const monthlyDonations = await allQuery(`
+                SELECT 
+                    strftime('%Y-%m', date) as month, 
+                    SUM(amount - pending_amount - (SELECT COALESCE(SUM(amount_paid), 0) FROM pending_payments WHERE donation_id = d.id)) as total, 
+                    COUNT(*) as count
+                FROM donations d
+                WHERE date >= date('now', '-12 months')
+                GROUP BY strftime('%Y-%m', date)
+                ORDER BY month ASC
+            `);
+
+            // Monthly expenses for the last 12 months
+            const monthlyExpenses = await allQuery(`
+                SELECT strftime('%Y-%m', date) as month, SUM(amount) as total
+                FROM expenses
+                WHERE date >= date('now', '-12 months')
+                GROUP BY strftime('%Y-%m', date)
+                ORDER BY month ASC
+            `);
+
+            // Payment method breakdown (donations - initial paid part)
+            const paymentMethodDonations = await allQuery(`
+                SELECT 
+                    payment_method, 
+                    SUM(amount - pending_amount - (SELECT COALESCE(SUM(amount_paid), 0) FROM pending_payments WHERE donation_id = d.id)) as total, 
+                    COUNT(*) as count
+                FROM donations d
+                GROUP BY payment_method
+                ORDER BY total DESC
+            `);
+
+            // Payment method breakdown (subsequent payments)
+            const paymentMethodPending = await allQuery(`
+                SELECT payment_method, SUM(amount_paid) as total, COUNT(*) as count
+                FROM pending_payments
+                GROUP BY payment_method
+            `);
+
+            // Top 10 donors - total paid so far
+            const topDonors = await allQuery(`
+                SELECT don.name, SUM(d.amount - d.pending_amount) as total, COUNT(d.id) as count
+                FROM donations d
+                JOIN donors don ON d.donor_id = don.id
+                GROUP BY don.name
+                ORDER BY total DESC
+                LIMIT 10
+            `);
+
+            // Expense breakdown by payment method
+            const expenseByMethod = await allQuery(`
+                SELECT payment_method, SUM(amount) as total
+                FROM expenses
+                GROUP BY payment_method
+                ORDER BY total DESC
+            `);
+
+            // Yearly summary (all years - total paid)
+            const yearlySummary = await allQuery(`
+                SELECT strftime('%Y', date) as year,
+                       SUM(amount - pending_amount) as donations,
+                       COUNT(*) as count
+                FROM donations
+                GROUP BY strftime('%Y', date)
+                ORDER BY year ASC
+            `);
+
+
+
+            // Yearly expenses
+            const yearlyExpenses = await allQuery(`
+                SELECT strftime('%Y', date) as year, SUM(amount) as expenses
+                FROM expenses
+                GROUP BY strftime('%Y', date)
+                ORDER BY year ASC
+            `);
+
+            // Recent 30 days daily trend
+            const dailyTrend = await allQuery(`
+                SELECT date, SUM(amount) as total, COUNT(*) as count
+                FROM donations
+                WHERE date >= date('now', '-30 days')
+                GROUP BY date
+                ORDER BY date ASC
+            `);
+
+            // Total donor count
+            const donorCount = await getQuery(`SELECT COUNT(*) as total FROM donors`);
+            const donationCount = await getQuery(`SELECT COUNT(*) as total FROM donations`);
+
+            return {
+                success: true,
+                monthlyDonations,
+                monthlyExpenses,
+                paymentMethodDonations,
+                paymentMethodPending,
+                topDonors,
+                expenseByMethod,
+                yearlySummary,
+                yearlyExpenses,
+                dailyTrend,
+                donorCount: donorCount.total || 0,
+                donationCount: donationCount.total || 0
+            };
+        } catch (error) {
+            console.error('Error fetching analytics data:', error);
             return { success: false, error: error.message };
         }
     },
@@ -310,6 +428,21 @@ const dbManager = {
         }
     },
 
+    getPaginatedBankSubmissions: async ({ page = 1, limit = 10 } = {}) => {
+        try {
+            const offset = (page - 1) * limit;
+            const countRow = await getQuery(`SELECT COUNT(*) as total FROM bank_submissions`);
+            const history = await allQuery(
+                `SELECT * FROM bank_submissions ORDER BY id DESC LIMIT ? OFFSET ?`,
+                [limit, offset]
+            );
+            return { success: true, history, total: countRow.total, page, limit };
+        } catch (error) {
+            console.error('Error fetching paginated bank submissions:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     updateExpense: async (data) => {
         try {
             const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ? WHERE id = ?`;
@@ -324,7 +457,7 @@ const dbManager = {
     getAllDonations: async () => {
         try {
             const sql = `
-                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, don.name as donor_name
+                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, don.name as donor_name
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
                 ORDER BY d.date DESC, d.id DESC
@@ -366,7 +499,7 @@ const dbManager = {
                 params
             );
             const donations = await allQuery(
-                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, don.name as donor_name
+                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, don.name as donor_name
                  FROM donations d JOIN donors don ON d.donor_id = don.id
                  ${whereSql} ORDER BY d.date DESC, d.id DESC LIMIT ? OFFSET ?`,
                 [...params, limit, offset]
@@ -507,8 +640,10 @@ const dbManager = {
 
     addBankSubmission: async (amount) => {
         try {
-            const today = new Date().toISOString().split('T')[0];
-            await runQuery(`INSERT INTO bank_submissions (date, amount) VALUES (?, ?)`, [today, amount]);
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            await runQuery(`INSERT INTO bank_submissions (date, time, amount) VALUES (?, ?, ?)`, [date, time, amount]);
             return { success: true };
         } catch (error) {
             console.error('Error adding bank submission:', error);
