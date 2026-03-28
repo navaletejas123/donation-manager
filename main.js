@@ -23,7 +23,7 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     Menu.setApplicationMenu(null);
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 
     globalShortcut.register('CommandOrControl+R', () => {
         if (mainWindow) {
@@ -156,4 +156,16 @@ ipcMain.handle('get-paginated-bank-submissions', async (event, params) => {
 
 ipcMain.handle('get-analytics-data', async (event) => {
     return await dbManager.getAnalyticsData();
+});
+
+ipcMain.handle('add-special-function', async (event, data) => {
+    return await dbManager.addSpecialFunction(data);
+});
+
+ipcMain.handle('get-special-functions', async (event) => {
+    return await dbManager.getSpecialFunctions();
+});
+
+ipcMain.handle('get-function-details', async (event, id) => {
+    return await dbManager.getFunctionDetails(id);
 });

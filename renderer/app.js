@@ -20,9 +20,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetId === 'dashboard-section' && window.refreshDashboard) {
                 window.refreshDashboard();
             } else if (targetId === 'history-section' && window.refreshHistory) {
-                // Not strictly needed on switch, but good if we want to retain state or clear
+                window.refreshHistory();
             } else if (targetId === 'all-donations-section' && window.refreshAllDonations) {
                 window.refreshAllDonations();
+            } else if (targetId === 'special-functions-section' && window.refreshSpecialFunctions) {
+                window.refreshSpecialFunctions();
+            } else if (targetId === 'expense-section' && window.refreshExpenses) {
+                window.refreshExpenses();
+            } else if (targetId === 'pending-section' && window.refreshPending) {
                 window.refreshPending();
             }
         });

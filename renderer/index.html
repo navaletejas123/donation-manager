@@ -37,6 +37,7 @@
                 <button class="nav-btn" data-target="history-section">Donor History</button>
                 <button class="nav-btn" data-target="pending-section">Pending Amount</button>
                 <button class="nav-btn" data-target="expense-section">Expenses</button>
+                <button class="nav-btn" data-target="special-functions-section">Special Functions</button>
             </nav>
         </aside>
         <!-- Main Content Area -->
@@ -287,6 +288,175 @@
                     </div>
                 </div>
             </section>
+            <!-- SPECIAL FUNCTIONS SECTION -->
+            <section id="special-functions-section" class="content-section">
+                <header class="section-header">
+                    <h1>Special Functions</h1>
+                </header>
+                
+                <div class="sf-top-controls" style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div class="form-group" style="flex: 1; margin: 0;">
+                        <label for="sf-select">Select Function</label>
+                        <select id="sf-select">
+                            <option value="" disabled selected>Select an event / puja...</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" id="sf-create-new-btn"><i class="bi bi-plus-circle"></i> Create New</button>
+                </div>
+
+                <div id="sf-create-form-container" style="display: none; background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <h3 style="margin-bottom: 15px;">Create Special Function</h3>
+                    <form id="sf-create-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sf-new-name">Function/Puja Name *</label>
+                                <input type="text" id="sf-new-name" required placeholder="e.g. Maha Shivaratri 2026">
+                            </div>
+                            <div class="form-group">
+                                <label for="sf-new-date">Date *</label>
+                                <input type="date" id="sf-new-date" required>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top: 10px;">
+                            <button type="submit" class="btn-primary">Save Function</button>
+                            <button type="button" class="btn-secondary" id="sf-cancel-create-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="sf-details-container" style="display: none;">
+                    <div class="calculationSection justify-end" style="margin-bottom: 20px;">
+                        <div class="donation_calculation pill-green">
+                            <h5>Total Donations</h5>
+                            <p id="sf-total-donations" class="amount">₹0.00</p>
+                        </div>
+                        <div class="donation_calculation pill-red">
+                            <h5>Total Pending</h5>
+                            <p id="sf-total-pending" class="amount">₹0.00</p>
+                        </div>
+                        <div class="donation_calculation pill-peru">
+                            <h5>Total Expenses</h5>
+                            <p id="sf-total-expenses" class="amount">₹0.00</p>
+                        </div>
+                        <div class="donation_calculation pill-indigo">
+                            <h5>Attendees Count</h5>
+                            <p id="sf-attendees-count" class="amount">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Add Donation to Function Form -->
+                    <div class="form-container" style="margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Add Donation to this Function</h3>
+                        <form id="sf-add-donation-form">
+                            <div class="form-group autocomplete-container">
+                                <label for="sf-donor-name">Donor Name *</label>
+                                <input type="text" id="sf-donor-name" required autocomplete="off" placeholder="Start typing name...">
+                                <ul id="sf-autocomplete-list" class="autocomplete-items"></ul>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="sf-reset-number">Reset Number</label>
+                                    <input type="text" id="sf-reset-number" placeholder="Enter reset number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="sf-donation-date">Date *</label>
+                                    <input type="date" id="sf-donation-date" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="sf-donation-amount">Amount *</label>
+                                    <input type="number" id="sf-donation-amount" min="1" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sf-pending-amount">Pending Amount</label>
+                                    <input type="number" id="sf-pending-amount" min="0" step="0.01" value="0">
+                                </div>
+                            </div>
+                            <div class="form-group payment-method-group">
+                                <label>Payment Method *</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="sf_payment_method" value="Offline" checked> Offline</label>
+                                    <label><input type="radio" name="sf_payment_method" value="Online"> Online</label>
+                                    <label><input type="radio" name="sf_payment_method" value="Bank Check"> Bank Check</label>
+                                </div>
+                            </div>
+                            <div class="form-group" id="sf-transaction-id-group" style="display: none;">
+                                <label for="sf-transaction-id">Transaction ID *</label>
+                                <input type="text" id="sf-transaction-id">
+                            </div>
+                            <div id="sf-bank-check-group" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="sf-bank-check-number">Bank Check Number </label>
+                                        <input type="text" id="sf-bank-check-number" placeholder="Enter check number">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sf-bank-name">Bank Name </label>
+                                        <input type="text" id="sf-bank-name" placeholder="Enter bank name">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Save Event Donation</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lists -->
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 2; min-width: 300px;">
+                            <h3 style="margin-bottom: 10px;">Function Donations (Attendees)</h3>
+                            <div class="table-container" style="padding: 0;">
+                                <table id="sf-donations-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Donor Name</th>
+                                            <th>Amount</th>
+                                            <th>Pending</th>
+                                            <th>Method</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination Bar -->
+                            <div class="pagination-bar" id="sf-donations-pagination">
+                                <span class="pagination-info" id="sf-donations-info">Page 1 of 1</span>
+                                <div class="pagination-controls">
+                                    <button class="pagination-btn" id="sf-donations-prev" disabled>Previous</button>
+                                    <button class="pagination-btn" id="sf-donations-next" disabled>Next</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 300px;">
+                            <h3 style="margin-bottom: 10px;">Function Expenses</h3>
+                            <button class="btn-secondary" id="sf-add-expense-btn" style="padding: 4px 10px; font-size: 12px; margin-bottom: 10px;">+ Add Expense</button>
+                            <div class="table-container" style="padding: 0;">
+                                <table id="sf-expenses-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Title</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination Bar -->
+                            <div class="pagination-bar" id="sf-expenses-pagination">
+                                <span class="pagination-info" id="sf-expenses-info">Page 1 of 1</span>
+                                <div class="pagination-controls">
+                                    <button class="pagination-btn" id="sf-expenses-prev" disabled>Previous</button>
+                                    <button class="pagination-btn" id="sf-expenses-next" disabled>Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <!-- ADD DONATION SECTION -->
             <section id="donation-section" class="content-section">
                 <header class="section-header">
@@ -356,11 +526,11 @@
                         <div id="bank-check-group" style="display: none;">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="bank-check-number">Bank Check Number *</label>
+                                    <label for="bank-check-number">Bank Check Number</label>
                                     <input type="text" id="bank-check-number" placeholder="Enter check number">
                                 </div>
                                 <div class="form-group">
-                                    <label for="bank-name">Bank Name *</label>
+                                    <label for="bank-name">Bank Name</label>
                                     <input type="text" id="bank-name" placeholder="Enter bank name">
                                 </div>
                             </div>
@@ -379,13 +549,13 @@
                     <h1>All Donations</h1>
                 </header>
                 <div class="calculationSection">
-                    <div class="donation_calculation">
+                    <div class="donation_calculation pill-green">
                         <h5>Total Paid</h5>
-                        <p id="all-donations-total-paid" class="amount" style="font-size: 16px;">₹0.00</p>
+                        <p id="all-donations-total-paid" class="amount">₹0.00</p>
                     </div>
-                    <div class="donation_calculation">
+                    <div class="donation_calculation pill-red">
                         <h5>Total Pending</h5>
-                        <p id="all-donations-total-pending" class="amount" style="font-size: 16px;">₹0.00</p>
+                        <p id="all-donations-total-pending" class="amount">₹0.00</p>
                     </div>
                 </div>
                 <div class="table-container">
@@ -543,11 +713,11 @@
                         <div id="expense-bank-check-group" style="display: none;">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="expense-bank-check-number">Bank Check Number *</label>
+                                    <label for="expense-bank-check-number">Bank Check Number </label>
                                     <input type="text" id="expense-bank-check-number" placeholder="Enter check number">
                                 </div>
                                 <div class="form-group">
-                                    <label for="expense-bank-name">Bank Name *</label>
+                                    <label for="expense-bank-name">Bank Name </label>
                                     <input type="text" id="expense-bank-name" placeholder="Enter bank name">
                                 </div>
                             </div>
@@ -629,11 +799,11 @@
                         <div id="pay-pending-bank-check-group" style="display: none;">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="pay-pending-bank-check-number">Bank Check Number *</label>
+                                    <label for="pay-pending-bank-check-number">Bank Check Number </label>
                                     <input type="text" id="pay-pending-bank-check-number" placeholder="Enter check number">
                                 </div>
                                 <div class="form-group">
-                                    <label for="pay-pending-bank-name">Bank Name *</label>
+                                    <label for="pay-pending-bank-name">Bank Name</label>
                                     <input type="text" id="pay-pending-bank-name" placeholder="Enter bank name">
                                 </div>
                             </div>
@@ -680,6 +850,85 @@
                     </form>
                 </div>
             </div>
+            <!-- SF Expense Modal -->
+            <div id="sf-expense-modal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 900px; position: relative;">
+                    <span class="close-modal" id="close-sf-expense-modal"
+                        style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
+                    <h2 style="color: var(--secondary-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px; margin-bottom: 15px;">
+                        Add Event Expense
+                    </h2>
+                    <form id="sf-expense-form-inner">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sf-expense-date">Date *</label>
+                                <input type="date" id="sf-expense-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sf-expense-title">Title *</label>
+                                <input type="text" id="sf-expense-title" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sf-expense-amount">Amount *</label>
+                                <input type="number" id="sf-expense-amount" min="1" step="0.01" required>
+                                <div id="sf-clark-cash-balance-container" style="margin-top: 5px; font-size: 13px; color: #d97706; display: block;">
+                                    Available Clark Cash: <strong id="sf-clark-cash-available-form">₹0.00</strong>
+                                </div>
+                            </div>
+                            <div class="form-group payment-method-group">
+                                <label>Payment Method *</label>
+                                <div class="radio-group" style="margin-top: 10px;">
+                                    <label>
+                                        <input type="radio" name="sf_expense_payment_method" value="Clark Cash" checked>
+                                        Clark Cash
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="sf_expense_payment_method" value="Online">
+                                        Online
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="sf_expense_payment_method" value="Bank Check">
+                                        Bank Check
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="sf_expense_payment_method" value="Other">
+                                        Other
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" id="sf-expense-other-method-group" style="display: none;">
+                            <label for="sf-expense-other-method">Specify Payment Method *</label>
+                            <input type="text" id="sf-expense-other-method" placeholder="Enter payment method">
+                        </div>
+                        <div class="form-group" id="sf-expense-transaction-group" style="display: none;">
+                            <label for="sf-expense-transaction-id">Transaction ID *</label>
+                            <input type="text" id="sf-expense-transaction-id">
+                        </div>
+                        <div id="sf-expense-bank-check-group" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="sf-expense-bank-check-number">Bank Check Number</label>
+                                    <input type="text" id="sf-expense-bank-check-number" placeholder="Enter check number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="sf-expense-bank-name">Bank Name</label>
+                                    <input type="text" id="sf-expense-bank-name" placeholder="Enter bank name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="sf-expense-desc">Description</label>
+                            <textarea id="sf-expense-desc" rows="3"></textarea>
+                        </div>
+                        <div class="form-actions" style="margin-top: 20px;">
+                            <button type="submit" class="btn-primary">Save Expense</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </main>
     </div>
     <!-- Bank Submission Modal -->
@@ -717,6 +966,7 @@
     <script src="all_donations.js"></script>
     <script src="history.js"></script>
     <script src="expense.js"></script>
+    <script src="special_functions.js"></script>
 </body>
 
 </html>

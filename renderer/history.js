@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tr.innerHTML = `
                         <td>${index}</td>
                         <td>${window.formatDateDDMMYYYY(d.date)}</td>
-                        <td>${d.category}</td>
+                        <td>${d.function_name ? d.function_name : d.category}</td>
                         <td>${d.reset_number || '-'}</td>
                         <td>${formatHistoryCurrency(d.amount)}</td>
                         <td>
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const html = `
                             <p><strong>Donor:</strong> ${name}</p>
                             <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
-                            <p><strong>Category:</strong> ${d.category}</p>
+                            <p><strong>Category:</strong> ${d.function_name ? d.function_name : d.category}</p>
                             <p><strong>Reset Number:</strong> ${d.reset_number || 'N/A'}</p>
                             <p><strong>Amount:</strong> ${formatHistoryCurrency(d.amount)}</p>
                             <p><strong>Payment Method:</strong> 

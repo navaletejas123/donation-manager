@@ -59,7 +59,7 @@ async function updateExpenseTotalPill() {
         if (pill && dashData.success) {
             pill.textContent = `Total: ${formatExpenseCurrency(dashData.totalExpense || 0)}`;
         }
-        
+
         // Update Clark Cash Available in Form
         const balanceFormEl = document.getElementById('clark-cash-available-form');
         if (balanceFormEl && dashData.success) {
@@ -87,9 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- SERVER-SIDE PAGINATION STATE ----
     let currentPage = 1;
-// ... (rest of the pagination state remains same)
-// ... (skipping unchanged code for brevity in this tool call)
-// ... (I will use multi_replace if needed, but for now I'll try to keep it contiguous)
+    // ... (rest of the pagination state remains same)
+    // ... (skipping unchanged code for brevity in this tool call)
+    // ... (I will use multi_replace if needed, but for now I'll try to keep it contiguous)
     const itemsPerPage = 50;
     let currentSearch = '';
     let currentDate = '';
@@ -105,8 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
         controls.className = 'table-controls';
         controls.innerHTML = `
             <div class="filter-bar">
-                <input type="text" class="table-search-input" placeholder="Search expenses...">
-                <input type="date" class="table-date-filter" title="Filter by date">
+                <div class="expense-filter-search">
+                    <input type="text" class="table-search-input" placeholder="Search expenses...">
+                    <input type="date" class="table-date-filter" title="Filter by date">
+               
                 <select class="table-month-filter" title="Filter by month">
                     <option value="">All Months</option>
                     <option value="01">January</option>
@@ -126,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option value="">All Years</option>
                 </select>
                 <button class="btn-secondary clear-filters-btn" style="padding:5px 10px;font-size:13px;">Clear</button>
+                 </div>
             </div>
         `;
         tableContainer.insertBefore(controls, document.querySelector('#expense-table'));
@@ -212,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td>${startIndex + idx + 1}</td>
                     <td>${window.formatDateDDMMYYYY(e.date)}</td>
-                    <td>${e.title}</td>
+                    <td>${e.title}${e.function_name ? ` <span style="color: #666; font-size: 0.9em;">(${e.function_name})</span>` : ''}</td>
                     <td>${e.description ? (e.description.length > 30 ? e.description.substring(0, 30) + '...' : e.description) : '-'}</td>
                     <td>${formatExpenseCurrency(e.amount)}</td>
                     <td>
@@ -230,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.querySelector('.view-btn').addEventListener('click', () => {
                     const html = `
                         <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(e.date)}</p>
-                        <p><strong>Title:</strong> ${e.title}</p>
+                        <p><strong>Title:</strong> ${e.title}${e.function_name ? ` (${e.function_name})` : ''}</p>
                         <p><strong>Amount:</strong> ${formatExpenseCurrency(e.amount)}</p>
                         <p><strong>Payment Method:</strong> 
                             ${e.payment_method || 'Offline'} 
@@ -253,9 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const pMethod = e.payment_method || 'Offline';
                     // Map "Offline" back to "Clark Cash" for legacy data if needed, or handle specifically
-                    const radioToCheck = document.querySelector(`input[name="expense_payment_method"][value="${pMethod}"]`) || 
-                                       document.querySelector(`input[name="expense_payment_method"][value="Other"]`);
-                    
+                    const radioToCheck = document.querySelector(`input[name="expense_payment_method"][value="${pMethod}"]`) ||
+                        document.querySelector(`input[name="expense_payment_method"][value="Other"]`);
+
                     if (radioToCheck) {
                         radioToCheck.checked = true;
                         if (radioToCheck.value === 'Other') {
@@ -286,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         transactionInput.removeAttribute('required');
                         bankCheckGroup.style.display = 'none';
                     }
-                    
+
                     // Show balance if Clark Cash
                     if (pMethod === 'Clark Cash' || (pMethod === 'Offline')) {
                         clarkBalanceContainer.style.display = 'block';
@@ -389,12 +392,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('expense-title').value;
         const amount = parseFloat(document.getElementById('expense-amount').value);
         const description = document.getElementById('expense-desc').value;
-        
+
         let paymentMethod = document.querySelector('input[name="expense_payment_method"]:checked').value;
         if (paymentMethod === 'Other') {
             paymentMethod = otherMethodInput.value.trim() || 'Other';
         }
-        
+
         const transactionId = transactionInput.value;
         const bankCheckNumber = bankCheckNumberInput.value;
         const bankName = bankNameInput.value;
@@ -402,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paymentMethod === 'Clark Cash') {
             const dashData = await window.api.getDashboardData();
             let available = dashData.availableClarkCash || 0;
-            
+
             // If editing, add back the original amount if it was also Clark Cash
             if (editingExpenseId) {
                 if (window.editingExpenseOriginalMethod === 'Clark Cash') {
@@ -453,10 +456,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.editingExpenseOriginalMethod = '';
         submitBtn.textContent = 'Save Expense';
         cancelEditBtn.style.display = 'none';
-        
+
         const clarkRadio = document.querySelector('input[name="expense_payment_method"][value="Clark Cash"]');
         if (clarkRadio) clarkRadio.checked = true;
-        
+
         clarkBalanceContainer.style.display = 'block';
         otherMethodGroup.style.display = 'none';
         otherMethodInput.removeAttribute('required');
@@ -467,10 +470,10 @@ document.addEventListener('DOMContentLoaded', () => {
         bankNameInput.removeAttribute('required');
         bankCheckNumberInput.value = '';
         bankNameInput.value = '';
-        
+
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('expense-date').value = today;
-        
+
         updateExpenseTotalPill();
     }
 

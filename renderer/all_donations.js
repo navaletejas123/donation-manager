@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${startIndex + idx + 1}</td>
                     <td>${window.formatDateDDMMYYYY(d.date)}</td>
                     <td>${d.donor_name}</td>
-                    <td>${d.category}</td>
+                    <td>${d.function_name ? d.function_name : d.category}</td>
                     <td>${d.reset_number || '-'}</td>
                     <td>${formatAllCurrency(d.amount)}</td>
                     <td>
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const html = `
                         <p><strong>Donor:</strong> ${d.donor_name}</p>
                         <p><strong>Date:</strong> ${window.formatDateDDMMYYYY(d.date)}</p>
-                        <p><strong>Category:</strong> ${d.category}</p>
+                        <p><strong>Category:</strong> ${d.function_name ? d.function_name : d.category}</p>
                         <p><strong>Reset Number:</strong> ${d.reset_number || 'N/A'}</p>
                         <p><strong>Amount:</strong> ${formatAllCurrency(d.amount)}</p>
                         <p><strong>Payment Method:</strong> 

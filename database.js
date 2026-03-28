@@ -15,6 +15,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 function createTables() {
     db.serialize(() => {
+        db.run(`CREATE TABLE IF NOT EXISTS special_functions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            date TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         db.run(`CREATE TABLE IF NOT EXISTS donors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
@@ -39,6 +46,7 @@ function createTables() {
             db.run("ALTER TABLE donations ADD COLUMN bank_check_number TEXT", () => {});
             db.run("ALTER TABLE donations ADD COLUMN bank_name TEXT", () => {});
             db.run("ALTER TABLE donations ADD COLUMN reset_number TEXT", () => {});
+            db.run("ALTER TABLE donations ADD COLUMN function_id INTEGER", () => {});
         });
 
         db.run(`CREATE TABLE IF NOT EXISTS expenses (
@@ -56,6 +64,7 @@ function createTables() {
              db.run("ALTER TABLE expenses ADD COLUMN transaction_id TEXT", () => {});
              db.run("ALTER TABLE expenses ADD COLUMN bank_check_number TEXT", () => {});
              db.run("ALTER TABLE expenses ADD COLUMN bank_name TEXT", () => {});
+             db.run("ALTER TABLE expenses ADD COLUMN function_id INTEGER", () => {});
         });
 
         // Stores individual payment history per donation when clearing pending
@@ -137,11 +146,11 @@ const dbManager = {
             }
 
             const insertDonationSql = `
-                INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, bank_check_number, bank_name, pending_amount, reset_number)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO donations (donor_id, date, category, amount, payment_method, transaction_id, bank_check_number, bank_name, pending_amount, reset_number, function_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             await runQuery(insertDonationSql, [
-                donorId, data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, data.pendingAmount, data.resetNumber
+                donorId, data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, data.pendingAmount, data.resetNumber, data.functionId || null
             ]);
 
             return { success: true };
@@ -153,16 +162,17 @@ const dbManager = {
 
     updateDonation: async (data) => {
         try {
-            const currentDonation = await getQuery(`SELECT pending_amount FROM donations WHERE id = ?`, [data.id]);
+            const currentDonation = await getQuery(`SELECT pending_amount, function_id FROM donations WHERE id = ?`, [data.id]);
             const finalPending = data.pendingAmount !== undefined ? data.pendingAmount : currentDonation.pending_amount;
+            const finalFunctionId = data.functionId !== undefined ? data.functionId : currentDonation.function_id;
 
             const updateSql = `
                 UPDATE donations
-                SET date = ?, category = ?, amount = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ?, pending_amount = ?, reset_number = ?
+                SET date = ?, category = ?, amount = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ?, pending_amount = ?, reset_number = ?, function_id = ?
                 WHERE id = ?
             `;
             await runQuery(updateSql, [
-                data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, finalPending, data.resetNumber, data.id
+                data.date, data.category, data.amount, data.paymentMethod, data.transactionId, data.bankCheckNumber, data.bankName, finalPending, data.resetNumber, finalFunctionId, data.id
             ]);
             return { success: true };
         } catch (error) {
@@ -174,9 +184,10 @@ const dbManager = {
     getDonorHistory: async (name) => {
         try {
             const sql = `
-                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number
+                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, sf.name as function_name
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
+                LEFT JOIN special_functions sf ON d.function_id = sf.id
                 WHERE don.name = ?
                 ORDER BY d.date DESC, d.id DESC
             `;
@@ -372,8 +383,8 @@ const dbManager = {
 
     addExpense: async (data) => {
         try {
-            const sql = `INSERT INTO expenses (date, title, amount, description, payment_method, transaction_id, bank_check_number, bank_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.bankCheckNumber || null, data.bankName || null]);
+            const sql = `INSERT INTO expenses (date, title, amount, description, payment_method, transaction_id, bank_check_number, bank_name, function_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.bankCheckNumber || null, data.bankName || null, data.functionId || null]);
             return { success: true };
         } catch (error) {
             console.error('Error adding expense:', error);
@@ -383,7 +394,12 @@ const dbManager = {
 
     getAllExpenses: async () => {
         try {
-            const sql = `SELECT * FROM expenses ORDER BY date DESC, id DESC`;
+            const sql = `
+                SELECT e.*, sf.name as function_name 
+                FROM expenses e 
+                LEFT JOIN special_functions sf ON e.function_id = sf.id 
+                ORDER BY e.date DESC, e.id DESC
+            `;
             const expenses = await allQuery(sql);
             return { success: true, expenses };
         } catch (error) {
@@ -399,26 +415,26 @@ const dbManager = {
             let conditions = [];
             let params = [];
             if (search) {
-                conditions.push(`(title LIKE ? OR description LIKE ? OR payment_method LIKE ? OR bank_check_number LIKE ? OR bank_name LIKE ? OR CAST(amount AS TEXT) LIKE ?)`);
+                conditions.push(`(e.title LIKE ? OR e.description LIKE ? OR e.payment_method LIKE ? OR e.bank_check_number LIKE ? OR e.bank_name LIKE ? OR CAST(e.amount AS TEXT) LIKE ? OR sf.name LIKE ?)`);
                 const like = `%${search}%`;
-                params.push(like, like, like, like, like, like);
+                params.push(like, like, like, like, like, like, like);
             }
             if (dateFilter) {
-                conditions.push(`date = ?`);
+                conditions.push(`e.date = ?`);
                 params.push(dateFilter);
             }
             if (monthFilter) {
-                conditions.push(`strftime('%Y-%m', date) = ?`);
+                conditions.push(`strftime('%Y-%m', e.date) = ?`);
                 params.push(monthFilter);
             }
             if (yearFilter && !monthFilter) {
-                conditions.push(`strftime('%Y', date) = ?`);
+                conditions.push(`strftime('%Y', e.date) = ?`);
                 params.push(String(yearFilter));
             }
             const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-            const countRow = await getQuery(`SELECT COUNT(*) as total FROM expenses ${whereSql}`, params);
+            const countRow = await getQuery(`SELECT COUNT(*) as total FROM expenses e LEFT JOIN special_functions sf ON e.function_id = sf.id ${whereSql}`, params);
             const expenses = await allQuery(
-                `SELECT * FROM expenses ${whereSql} ORDER BY date DESC, id DESC LIMIT ? OFFSET ?`,
+                `SELECT e.*, sf.name as function_name FROM expenses e LEFT JOIN special_functions sf ON e.function_id = sf.id ${whereSql} ORDER BY e.date DESC, e.id DESC LIMIT ? OFFSET ?`,
                 [...params, limit, offset]
             );
             return { success: true, expenses, total: countRow.total, page, limit };
@@ -445,8 +461,11 @@ const dbManager = {
 
     updateExpense: async (data) => {
         try {
-            const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ? WHERE id = ?`;
-            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.bankCheckNumber || null, data.bankName || null, data.id]);
+            const currentExpense = await getQuery(`SELECT function_id FROM expenses WHERE id = ?`, [data.id]);
+            const finalFunctionId = data.functionId !== undefined ? data.functionId : (currentExpense ? currentExpense.function_id : null);
+            
+            const sql = `UPDATE expenses SET date = ?, title = ?, amount = ?, description = ?, payment_method = ?, transaction_id = ?, bank_check_number = ?, bank_name = ?, function_id = ? WHERE id = ?`;
+            await runQuery(sql, [data.date, data.title, data.amount, data.description, data.paymentMethod || 'Offline', data.transactionId || null, data.bankCheckNumber || null, data.bankName || null, finalFunctionId, data.id]);
             return { success: true };
         } catch (error) {
             console.error('Error updating expense:', error);
@@ -457,9 +476,10 @@ const dbManager = {
     getAllDonations: async () => {
         try {
             const sql = `
-                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, don.name as donor_name
+                SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, don.name as donor_name, sf.name as function_name
                 FROM donations d
                 JOIN donors don ON d.donor_id = don.id
+                LEFT JOIN special_functions sf ON d.function_id = sf.id
                 ORDER BY d.date DESC, d.id DESC
             `;
             const donations = await allQuery(sql);
@@ -477,9 +497,9 @@ const dbManager = {
             let conditions = [];
             let params = [];
             if (search) {
-                conditions.push(`(don.name LIKE ? OR d.category LIKE ? OR d.payment_method LIKE ? OR d.bank_check_number LIKE ? OR d.bank_name LIKE ? OR CAST(d.amount AS TEXT) LIKE ?)`);
+                conditions.push(`(don.name LIKE ? OR d.category LIKE ? OR sf.name LIKE ? OR d.payment_method LIKE ? OR d.bank_check_number LIKE ? OR d.bank_name LIKE ? OR CAST(d.amount AS TEXT) LIKE ?)`);
                 const like = `%${search}%`;
-                params.push(like, like, like, like, like, like);
+                params.push(like, like, like, like, like, like, like);
             }
             if (dateFilter) {
                 conditions.push(`d.date = ?`);
@@ -495,12 +515,12 @@ const dbManager = {
             }
             const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
             const countRow = await getQuery(
-                `SELECT COUNT(*) as total FROM donations d JOIN donors don ON d.donor_id = don.id ${whereSql}`,
+                `SELECT COUNT(*) as total FROM donations d JOIN donors don ON d.donor_id = don.id LEFT JOIN special_functions sf ON d.function_id = sf.id ${whereSql}`,
                 params
             );
             const donations = await allQuery(
-                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, don.name as donor_name
-                 FROM donations d JOIN donors don ON d.donor_id = don.id
+                `SELECT d.id, d.date, d.category, d.amount, d.payment_method, d.transaction_id, d.bank_check_number, d.bank_name, d.pending_amount, d.cleared_date, d.reset_number, don.name as donor_name, sf.name as function_name
+                 FROM donations d JOIN donors don ON d.donor_id = don.id LEFT JOIN special_functions sf ON d.function_id = sf.id
                  ${whereSql} ORDER BY d.date DESC, d.id DESC LIMIT ? OFFSET ?`,
                 [...params, limit, offset]
             );
@@ -647,6 +667,74 @@ const dbManager = {
             return { success: true };
         } catch (error) {
             console.error('Error adding bank submission:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    addSpecialFunction: async (data) => {
+        try {
+            const sql = `INSERT INTO special_functions (name, date) VALUES (?, ?)`;
+            await runQuery(sql, [data.name, data.date]);
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding special function:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    getSpecialFunctions: async () => {
+        try {
+            const sql = `SELECT * FROM special_functions ORDER BY date DESC, id DESC`;
+            const functions = await allQuery(sql);
+            return { success: true, functions };
+        } catch (error) {
+            console.error('Error fetching special functions:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    getFunctionDetails: async (id) => {
+        try {
+            const func = await getQuery(`SELECT * FROM special_functions WHERE id = ?`, [id]);
+            if (!func) return { success: false, error: 'Function not found' };
+
+            const donationsSql = `
+                SELECT d.*, don.name as donor_name
+                FROM donations d
+                JOIN donors don ON d.donor_id = don.id
+                WHERE d.function_id = ?
+                ORDER BY d.date DESC, d.id DESC
+            `;
+            const donations = await allQuery(donationsSql, [id]);
+
+            const expensesSql = `
+                SELECT * FROM expenses WHERE function_id = ? ORDER BY date DESC, id DESC
+            `;
+            const expenses = await allQuery(expensesSql, [id]);
+
+            let totalDonations = 0;
+            let totalPending = 0;
+            donations.forEach(d => {
+                totalDonations += (d.amount - d.pending_amount);
+                totalPending += d.pending_amount;
+            });
+
+            let totalExpenses = 0;
+            expenses.forEach(e => {
+                totalExpenses += e.amount;
+            });
+
+            return {
+                success: true,
+                func,
+                donations,
+                expenses,
+                totalDonations,
+                totalPending,
+                totalExpenses
+            };
+        } catch (error) {
+            console.error('Error fetching function details:', error);
             return { success: false, error: error.message };
         }
     }

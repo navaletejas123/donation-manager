@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('api', {
     deleteExpense: (id) => ipcRenderer.invoke('delete-expense', id),
     addBankSubmission: (amount) => ipcRenderer.invoke('add-bank-submission', amount),
     getAnalyticsData: () => ipcRenderer.invoke('get-analytics-data'),
+    addSpecialFunction: (data) => ipcRenderer.invoke('add-special-function', data),
+    getSpecialFunctions: () => ipcRenderer.invoke('get-special-functions'),
+    getFunctionDetails: (id) => ipcRenderer.invoke('get-function-details', id),
 
      windowMinimize: () => ipcRenderer.send('window-minimize'),
     windowMaximize: () => ipcRenderer.send('window-maximize'),
