@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
     addSpecialFunction: (data) => ipcRenderer.invoke('add-special-function', data),
     getSpecialFunctions: () => ipcRenderer.invoke('get-special-functions'),
     getFunctionDetails: (id) => ipcRenderer.invoke('get-function-details', id),
+    deleteSpecialFunction: (id) => ipcRenderer.invoke('delete-special-function', id),
 
      windowMinimize: () => ipcRenderer.send('window-minimize'),
     windowMaximize: () => ipcRenderer.send('window-maximize'),

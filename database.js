@@ -737,6 +737,31 @@ const dbManager = {
             console.error('Error fetching function details:', error);
             return { success: false, error: error.message };
         }
+    },
+
+    deleteSpecialFunction: async (id) => {
+        try {
+            // Start a transaction for safety if needed, but sequential runs are fine in this simple setup
+            // 1. Delete associated pending payments first (linked to donations of this function)
+            await runQuery(`
+                DELETE FROM pending_payments 
+                WHERE donation_id IN (SELECT id FROM donations WHERE function_id = ?)
+            `, [id]);
+
+            // 2. Delete associated donations
+            await runQuery(`DELETE FROM donations WHERE function_id = ?`, [id]);
+
+            // 3. Delete associated expenses
+            await runQuery(`DELETE FROM expenses WHERE function_id = ?`, [id]);
+
+            // 4. Delete the function itself
+            await runQuery(`DELETE FROM special_functions WHERE id = ?`, [id]);
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting special function:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 

@@ -169,3 +169,7 @@ ipcMain.handle('get-special-functions', async (event) => {
 ipcMain.handle('get-function-details', async (event, id) => {
     return await dbManager.getFunctionDetails(id);
 });
+
+ipcMain.handle('delete-special-function', async (event, id) => {
+    return await dbManager.deleteSpecialFunction(id);
+});

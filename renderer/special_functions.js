@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createForm = document.getElementById('sf-create-form');
     const cancelCreateBtn = document.getElementById('sf-cancel-create-btn');
     const detailsContainer = document.getElementById('sf-details-container');
+    const deleteBtn = document.getElementById('sf-delete-btn');
 
     const newNameInput = document.getElementById('sf-new-name');
     const newDateInput = document.getElementById('sf-new-date');
@@ -36,6 +37,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const attendeesCountEl = document.getElementById('sf-attendees-count');
 
+    const SF_DELETE_PASSWORD = '9097';
+
+    function openDeletePasswordModal(titleText = 'Delete Event') {
+        return new Promise((resolve) => {
+            const titleEl = document.getElementById('delete-modal-title');
+            if (titleEl) titleEl.textContent = `🔒 ${titleText}`;
+            const modal = document.getElementById('delete-password-modal');
+            const input = document.getElementById('delete-password-input');
+            const errorEl = document.getElementById('delete-password-error');
+            const closeBtn = document.getElementById('close-delete-modal');
+            const oldForm = document.getElementById('delete-password-form');
+
+            // Clone the form to remove ALL old event listeners (prevents conflicts with other JS files)
+            const form = oldForm.cloneNode(true);
+            oldForm.parentNode.replaceChild(form, oldForm);
+
+            // Re-grab input inside the cloned form
+            const newInput = form.querySelector('#delete-password-input');
+
+            newInput.value = '';
+            errorEl.style.display = 'none';
+            modal.style.display = 'block';
+
+            // Use multiple timeouts to ensure the input is focusable after any dialog cleanup
+            setTimeout(() => {
+                newInput.disabled = false;
+                newInput.readOnly = false;
+                newInput.focus();
+                newInput.click();
+            }, 200);
+
+            form.addEventListener('submit', function handleSubmit(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (newInput.value === SF_DELETE_PASSWORD) {
+                    modal.style.display = 'none';
+                    form.removeEventListener('submit', handleSubmit);
+                    resolve(true);
+                } else {
+                    errorEl.style.display = 'block';
+                    newInput.value = '';
+                    newInput.focus();
+                }
+            });
+
+            closeBtn.onclick = () => { 
+                modal.style.display = 'none'; 
+                resolve(null); 
+            };
+
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                    resolve(null);
+                }
+            };
+        });
+    }
+
     let currentFunctions = [];
     let donationsData = [];
     let expensesData = [];
@@ -56,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             res.functions.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f.id;
-                opt.textContent = `${f.name} (${f.date})`;
+                opt.textContent = `${f.name} (${window.formatDateDDMMYYYY(f.date)})`;
                 sfSelect.appendChild(opt);
             });
         }
@@ -186,11 +246,47 @@ document.addEventListener('DOMContentLoaded', () => {
     sfSelect.addEventListener('change', (e) => {
         const id = e.target.value;
         createFormContainer.style.display = 'none';
-        loadFunctionDetails(id);
+        if (id) {
+            deleteBtn.style.display = 'flex';
+            loadFunctionDetails(id);
+        } else {
+            deleteBtn.style.display = 'none';
+            detailsContainer.style.display = 'none';
+        }
+    });
+
+    deleteBtn.addEventListener('click', async () => {
+        const id = sfSelect.value;
+        if (!id) return;
+
+        const selectedFunc = currentFunctions.find(f => f.id == id);
+        const funcName = selectedFunc ? selectedFunc.name : 'this function';
+
+        const confirmed = await openDeletePasswordModal(`Delete "${funcName}"`);
+        if (confirmed) {
+            const res = await api.deleteSpecialFunction(parseInt(id));
+            if (res.success) {
+                window.showToast('Special function deleted successfully!', 'success');
+                deleteBtn.style.display = 'none';
+                detailsContainer.style.display = 'none';
+                sfSelect.value = '';
+                await loadFunctions();
+                
+                // Refresh other views
+                if (window.refreshDashboard) window.refreshDashboard();
+                if (window.refreshAllDonations) window.refreshAllDonations();
+                if (window.refreshHistory) window.refreshHistory();
+                if (window.refreshPending) window.refreshPending();
+                if (window.refreshExpenses) window.refreshExpenses();
+            } else {
+                window.showToast('Error deleting function: ' + res.error, 'error');
+            }
+        }
     });
 
     createNewBtn.addEventListener('click', () => {
         detailsContainer.style.display = 'none';
+        deleteBtn.style.display = 'none';
         sfSelect.value = '';
         createFormContainer.style.display = 'block';
         newDateInput.value = today;
@@ -218,14 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const justAdded = currentFunctions.find(f => f.name === data.name);
                 if (justAdded) {
                     sfSelect.value = justAdded.id;
+                    deleteBtn.style.display = 'flex';
                     loadFunctionDetails(justAdded.id);
                 } else {
                     sfSelect.value = currentFunctions[0].id;
+                    deleteBtn.style.display = 'flex';
                     loadFunctionDetails(currentFunctions[0].id);
                 }
             }
         } else {
-            alert('Error creating function: ' + res.error);
+            window.showToast('Error creating function: ' + res.error, 'error');
         }
     });
 
@@ -373,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             window.showToast('Event Donation added successfully!', 'success');
         } else {
-            alert('Error adding donation: ' + res.error);
+            window.showToast('Error adding donation: ' + res.error, 'error');
         }
     });
 
@@ -517,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(window.refreshExpenses) window.refreshExpenses();
             window.showToast('Event Expense added successfully!', 'success');
         } else {
-            alert('Error adding expense: ' + res.error);
+            window.showToast('Error adding expense: ' + res.error, 'error');
         }
     });
 

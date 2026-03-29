@@ -34,16 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initialize application data
-    const savedSection = sessionStorage.getItem('activeSection');
-    if (savedSection) {
-        const savedBtn = document.querySelector(`.nav-btn[data-target="${savedSection}"]`);
-        if (savedBtn) {
-            savedBtn.click();
-        } else if (window.refreshDashboard) {
-            window.refreshDashboard();
-        }
-    } else if (window.refreshDashboard) {
+    const savedSection = sessionStorage.getItem('activeSection') || 'dashboard-section';
+    
+    // Trigger specific refreshes based on the active section (restored early in index.html)
+    if (savedSection === 'dashboard-section' && window.refreshDashboard) {
         window.refreshDashboard();
+    } else if (savedSection === 'history-section' && window.refreshHistory) {
+        window.refreshHistory();
+    } else if (savedSection === 'all-donations-section' && window.refreshAllDonations) {
+        window.refreshAllDonations();
+    } else if (savedSection === 'special-functions-section' && window.refreshSpecialFunctions) {
+        window.refreshSpecialFunctions();
+    } else if (savedSection === 'expense-section' && window.refreshExpenses) {
+        window.refreshExpenses();
+    } else if (savedSection === 'pending-section' && window.refreshPending) {
+        window.refreshPending();
     }
 });
 

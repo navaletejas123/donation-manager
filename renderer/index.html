@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Donation Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cascadia-code/index.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
 </head>
@@ -31,7 +32,7 @@
                 <h3>Donation Management System</h3>
             </div>
             <nav class="nav-links">
-                <button class="nav-btn active" data-target="dashboard-section">Dashboard</button>
+                <button class="nav-btn" data-target="dashboard-section">Dashboard</button>
                 <button class="nav-btn" data-target="donation-section">Add Donation</button>
                 <button class="nav-btn" data-target="all-donations-section">All Donations</button>
                 <button class="nav-btn" data-target="history-section">Donor History</button>
@@ -43,7 +44,7 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <!-- DASHBOARD SECTION -->
-            <section id="dashboard-section" class="content-section active">
+            <section id="dashboard-section" class="content-section">
                 <!-- Dashboard Header -->
                 <div class="dashboard-header">
                     <div class="dashboard-title-block">
@@ -295,11 +296,16 @@
                 </header>
                 
                 <div class="sf-top-controls" style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div class="form-group" style="flex: 1; margin: 0;">
+                    <div class="form-group" style="flex: 1; margin: 0; position: relative;">
                         <label for="sf-select">Select Function</label>
-                        <select id="sf-select">
-                            <option value="" disabled selected>Select an event / puja...</option>
-                        </select>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="sf-select" style="flex: 1;">
+                                <option value="" disabled selected>Select an event / puja...</option>
+                            </select>
+                            <button id="sf-delete-btn" class="btn-icon-danger" style="display: none;" title="Delete this function">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     <button class="btn-secondary" id="sf-create-new-btn"><i class="bi bi-plus-circle"></i> Create New</button>
                 </div>
@@ -309,8 +315,8 @@
                     <form id="sf-create-form">
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="sf-new-name">Function/Puja Name *</label>
-                                <input type="text" id="sf-new-name" required placeholder="e.g. Maha Shivaratri 2026">
+                                <label for="sf-new-name">Vidhan/Puja Name *</label>
+                                <input type="text" id="sf-new-name" required placeholder="name">
                             </div>
                             <div class="form-group">
                                 <label for="sf-new-date">Date *</label>
@@ -406,7 +412,9 @@
                     <!-- Lists -->
                     <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                         <div style="flex: 2; min-width: 300px;">
-                            <h3 style="margin-bottom: 10px;">Function Donations (Attendees)</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">Function Donations (Attendees)</h3>
+                            </div>
                             <div class="table-container" style="padding: 0;">
                                 <table id="sf-donations-table">
                                     <thead>
@@ -431,8 +439,10 @@
                             </div>
                         </div>
                         <div style="flex: 1; min-width: 300px;">
-                            <h3 style="margin-bottom: 10px;">Function Expenses</h3>
-                            <button class="btn-secondary" id="sf-add-expense-btn" style="padding: 4px 10px; font-size: 12px; margin-bottom: 10px;">+ Add Expense</button>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">Function Expenses</h3>
+                                <button class="btn-secondary" id="sf-add-expense-btn" style="padding: 4px 10px; font-size: 12px; margin: 0;">+ Add Expense</button>
+                            </div>
                             <div class="table-container" style="padding: 0;">
                                 <table id="sf-expenses-table">
                                     <thead>
@@ -548,7 +558,7 @@
                 <header class="section-header">
                     <h1>All Donations</h1>
                 </header>
-                <div class="calculationSection">
+                <div class="calculationSection justify-end">
                     <div class="donation_calculation pill-green">
                         <h5>Total Paid</h5>
                         <p id="all-donations-total-paid" class="amount">₹0.00</p>
@@ -636,7 +646,7 @@
                 <header class="section-header">
                     <h1>Pending Amounts</h1>
                 </header>
-                <div class="calculationSection">
+                <div class="calculationSection justify-end">
                     <div class="pendingSection_Calculation_Container">
                         <h5>Total Pending</h5>
                         <p id="pending-section-total" class="amount">₹0.00</p>
@@ -822,9 +832,9 @@
                 <div class="modal-content" style="max-width: 360px; position: relative; text-align: center;">
                     <span class="close-modal" id="close-delete-modal"
                         style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark);">&times;</span>
-                    <h2
+                    <h2 id="delete-modal-title"
                         style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; margin-bottom: 15px;">
-                        🔒 Delete Donation
+                        🔒 Delete
                     </h2>
                     <p style="color: #666; margin-bottom: 15px;">
                         This action is permanent. Enter the admin password to
@@ -930,6 +940,17 @@
                 </div>
             </div>
         </main>
+        
+        <!-- Early Tab Restoration Script to Prevent Flicker -->
+        <script>
+            (function () {
+                const savedSection = sessionStorage.getItem('activeSection') || 'dashboard-section';
+                const sectionEl = document.getElementById(savedSection);
+                const btnEl = document.querySelector(`.nav-btn[data-target="${savedSection}"]`);
+                if (sectionEl) sectionEl.classList.add('active');
+                if (btnEl) btnEl.classList.add('active');
+            })();
+        </script>
     </div>
     <!-- Bank Submission Modal -->
     <div id="bank-submission-modal" class="modal">

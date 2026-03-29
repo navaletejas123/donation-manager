@@ -9,46 +9,56 @@ const formatExpenseCurrency = (amount) => {
 
 const EXPENSE_DELETE_PASSWORD = '9097';
 
-function openExpenseDeleteModal() {
+function openExpenseDeleteModal(titleText = 'Delete Expense') {
     return new Promise((resolve) => {
+        const titleEl = document.getElementById('delete-modal-title');
+        if (titleEl) titleEl.textContent = `🔒 ${titleText}`;
         const modal = document.getElementById('delete-password-modal');
-        const input = document.getElementById('delete-password-input');
         const errorEl = document.getElementById('delete-password-error');
         const closeBtn = document.getElementById('close-delete-modal');
+        const oldForm = document.getElementById('delete-password-form');
+
+        // Clone the form to remove ALL old event listeners (prevents conflicts with other JS files)
+        const form = oldForm.cloneNode(true);
+        oldForm.parentNode.replaceChild(form, oldForm);
+
+        const input = form.querySelector('#delete-password-input');
 
         input.value = '';
         errorEl.style.display = 'none';
         modal.style.display = 'block';
-        setTimeout(() => input.focus(), 100);
+        setTimeout(() => {
+            input.disabled = false;
+            input.readOnly = false;
+            input.focus();
+            input.click();
+        }, 200);
 
-        const form = document.getElementById('delete-password-form');
-        const newForm = form.cloneNode(true);
-        form.parentNode.replaceChild(newForm, form);
-        const newInput = document.getElementById('delete-password-input');
-        const newErrorEl = document.getElementById('delete-password-error');
-        newErrorEl.style.display = 'none';
-
-        newForm.addEventListener('submit', (e) => {
+        form.addEventListener('submit', function handleSubmit(e) {
             e.preventDefault();
-            if (newInput.value === EXPENSE_DELETE_PASSWORD) {
+            e.stopPropagation();
+            if (input.value === EXPENSE_DELETE_PASSWORD) {
                 modal.style.display = 'none';
+                form.removeEventListener('submit', handleSubmit);
                 resolve(true);
             } else {
-                newErrorEl.style.display = 'block';
-                newInput.value = '';
-                newInput.focus();
+                errorEl.style.display = 'block';
+                input.value = '';
+                input.focus();
             }
         });
 
-        closeBtn.onclick = () => { modal.style.display = 'none'; resolve(null); };
+        closeBtn.onclick = () => { 
+            modal.style.display = 'none'; 
+            resolve(null); 
+        };
 
-        window.addEventListener('click', function onOutside(e) {
+        modal.onclick = (e) => {
             if (e.target === modal) {
                 modal.style.display = 'none';
-                window.removeEventListener('click', onOutside);
                 resolve(null);
             }
-        });
+        };
     });
 }
 
