@@ -736,7 +736,7 @@ async function loadClarkCashHistory(page) {
                     
                     row.innerHTML = `
                         <td>${displayIndex}</td>
-                        <td>${item.date}</td>
+                        <td class="table-date-cell">${window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(item.date) : item.date}</td>
                         <td>${item.time || '-'}</td>
                         <td style="font-weight:700; color:#d97706">${formatCurrency(item.amount)}</td>
                     `;

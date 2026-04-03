@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     tr.innerHTML = `
                         <td>${index}</td>
-                        <td>${window.formatDateDDMMYYYY(d.date)}</td>
+                        <td class="table-date-cell">${window.formatDateDDMMYYYY(d.date)}</td>
                         <td>${d.function_name ? d.function_name : d.category}</td>
                         <td>${d.reset_number || '-'}</td>
                         <td>${formatHistoryCurrency(d.amount)}</td>
@@ -244,13 +244,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>
                             ${isPending ? `<span class="badge-pending">${formatHistoryCurrency(d.pending_amount)}</span>` : formatHistoryCurrency(d.pending_amount)}
                         </td>
-                        <td>
+                        <td class="table-date-cell">
                             ${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : '-'}
                         </td>
                         <td>
-                            <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 5px;">View</button>
-                            <button class="btn-secondary edit-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 5px;">Edit</button>
-                            ${isPending ? `<button class="btn-primary clear-pending-btn" style="padding: 5px 10px; font-size: 13px;">Clear</button>` : ''}
+                            <div class="table-actions">
+                                <button class="action-btn action-view view-btn" title="View"><i class="bi bi-eye-fill"></i></button>
+                                <button class="action-btn action-edit edit-btn" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                                ${isPending ? `<button class="action-btn action-clear clear-pending-btn" title="Clear Pending"><i class="bi bi-check-circle-fill"></i></button>` : ''}
+                            </div>
                         </td>
                     `;
 
@@ -369,10 +371,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${index}</td>
                         <td>${item.name}</td>
                         <td><span class="badge-pending">${formatHistoryCurrency(item.total_pending)}</span></td>
-                        <td>—</td>
+                        <td class="table-date-cell">—</td>
                         <td>
-                             <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 5px;">View</button>
-                             <button class="btn-primary clear-donor-btn" style="padding: 5px 10px; font-size: 13px;">Clear Total Pending</button>
+                            <div class="table-actions">
+                                <button class="action-btn action-view view-btn" title="View"><i class="bi bi-eye-fill"></i></button>
+                                <button class="action-btn action-clear clear-donor-btn" title="Clear Pending"><i class="bi bi-check-circle-fill"></i></button>
+                            </div>
                         </td>
                     `;
                     

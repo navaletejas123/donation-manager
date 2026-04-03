@@ -13,14 +13,21 @@
     --shadow-lg: 0 8px 28px rgba(0,0,0,0.08);
     --radius-lg: 16px;
     --radius-md: 12px;
+    --font-heading: "Cascadia Code", "Montserrat", "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-body: "Cascadia Code", "Montserrat", "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "Cascadia Code", "Fira Code", monospace;
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Cascadia Code', monospace;
+    font-family: var(--font-body);
     font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
 }
 
 body {
@@ -188,6 +195,7 @@ body {
     color: #94a3b8;
     margin: 4px 0 0;
     font-weight: 400;
+    font-style: italic;
 }
 
 .dashboard-meta {
@@ -365,6 +373,7 @@ body {
 }
 
 .card .amount {
+    font-family: var(--font-mono);
     font-size: 17px;
     font-weight: 800;
     line-height: 1.2;
@@ -380,6 +389,7 @@ body {
     display: block;
     font-weight: 600;
     letter-spacing: 0.2px;
+    font-style: italic;
 }
 
 /* Card colour themes — left border accent */
@@ -497,6 +507,7 @@ body {
     color: #94a3b8;
     margin: 0;
     font-weight: 400;
+    font-style: italic;
 }
 
 /* ── Chart Badges ─────────────────────────────────────────────── */
@@ -732,6 +743,103 @@ textarea:focus {
     border-color: #fecaca;
     background: #fef2f2;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+/* ── Table Action Icon Buttons ─────────────────────────────────── */
+.table-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+}
+
+.table-actions .action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.25s ease;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.table-actions .action-btn::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.8);
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.table-actions .action-btn:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+}
+
+.table-actions .action-btn.action-view {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    color: #2563eb;
+}
+
+.table-actions .action-btn.action-view:hover {
+    background: linear-gradient(135deg, #bfdbfe, #dbeafe);
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
+    transform: translateY(-1px);
+}
+
+.table-actions .action-btn.action-edit {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    color: #d97706;
+}
+
+.table-actions .action-btn.action-edit:hover {
+    background: linear-gradient(135deg, #fde68a, #fef3c7);
+    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.2);
+    transform: translateY(-1px);
+}
+
+.table-actions .action-btn.action-delete {
+    background: linear-gradient(135deg, #fee2e2, #fef2f2);
+    color: #ef4444;
+}
+
+.table-actions .action-btn.action-delete:hover {
+    background: linear-gradient(135deg, #fecaca, #fee2e2);
+    box-shadow: 0 3px 10px rgba(239, 68, 68, 0.2);
+    transform: translateY(-1px);
+}
+
+.table-actions .action-btn.action-clear {
+    background: linear-gradient(135deg, #dcfce7, #f0fdf4);
+    color: #16a34a;
+}
+
+.table-actions .action-btn.action-clear:hover {
+    background: linear-gradient(135deg, #bbf7d0, #dcfce7);
+    box-shadow: 0 3px 10px rgba(22, 163, 74, 0.2);
+    transform: translateY(-1px);
+}
+
+/* ── Table Date Cells ─────────────────────────────────────── */
+td.table-date-cell {
+    white-space: nowrap;
 }
 
 .form-actions {
@@ -1113,6 +1221,7 @@ tbody tr:hover {
     z-index: 9999;
     /* Ensure it sits on top of everything */
     -webkit-app-region: no-drag;
+    font-family: var(--font-body);
 }
 
 /* Button Styling */
@@ -1195,6 +1304,10 @@ tbody tr:hover {
     font-weight: 600;
 }
 
+.donation_calculation p {
+    font-family: var(--font-mono);
+}
+
 .pill-green {
     background-color: rgb(207, 253, 207);
     border: 1px solid rgb(4, 209, 4);
@@ -1231,6 +1344,10 @@ tbody tr:hover {
     margin: 0;
     font-size: 13px;
     font-weight: 600;
+}
+
+.pendingSection_Calculation_Container p {
+    font-family: var(--font-mono);
 }
 
 .filterInputsContainer {
@@ -1270,6 +1387,7 @@ tbody tr:hover {
 #donation-amount, #sf-donation-amount, #expense-amount, #pay-pending-amount {
     background-color: #f0fdf4;
     border-color: #bbf7d0;
+    font-family: var(--font-mono);
 }
 #donation-amount:focus, #sf-donation-amount:focus, #expense-amount:focus, #pay-pending-amount:focus {
     border-color: #22c55e;
@@ -1281,6 +1399,7 @@ tbody tr:hover {
 #pending-amount, #sf-pending-amount {
     background-color: #fff1f2;
     border-color: #fecdd3;
+    font-family: var(--font-mono);
 }
 #pending-amount:focus, #sf-pending-amount:focus {
     border-color: #e11d48;

@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tr.innerHTML = `
                     <td>${startIndex + idx + 1}</td>
-                    <td>${window.formatDateDDMMYYYY(d.date)}</td>
+                    <td class="table-date-cell">${window.formatDateDDMMYYYY(d.date)}</td>
                     <td>${d.donor_name}</td>
                     <td>${d.function_name ? d.function_name : d.category}</td>
                     <td>${d.reset_number || '-'}</td>
@@ -203,11 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>
                         ${hasPending ? `<span class="badge-pending">${formatAllCurrency(d.pending_amount)}</span>` : formatAllCurrency(d.pending_amount)}
                     </td>
-                    <td>${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : '-'}</td>
+                    <td class="table-date-cell">${d.cleared_date ? window.formatDateDDMMYYYY(d.cleared_date) : '-'}</td>
                     <td>
-                        <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">View</button>
-                        <button class="btn-secondary edit-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">Edit</button>
-                        <button class="btn-danger delete-btn" style="padding: 5px 10px; font-size: 13px; background: #e53e3e; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Delete</button>
+                        <div class="table-actions">
+                            <button class="action-btn action-view view-btn" title="View"><i class="bi bi-eye-fill"></i></button>
+                            <button class="action-btn action-edit edit-btn" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                            <button class="action-btn action-delete delete-btn" title="Delete"><i class="bi bi-trash-fill"></i></button>
+                        </div>
                     </td>
                 `;
 

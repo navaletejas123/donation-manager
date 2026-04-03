@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${startIndex + idx + 1}</td>
-                    <td>${window.formatDateDDMMYYYY(e.date)}</td>
+                    <td class="table-date-cell">${window.formatDateDDMMYYYY(e.date)}</td>
                     <td>${e.title}${e.function_name ? ` <span style="color: #666; font-size: 0.9em;">(${e.function_name})</span>` : ''}</td>
                     <td>${e.description ? (e.description.length > 30 ? e.description.substring(0, 30) + '...' : e.description) : '-'}</td>
                     <td>${formatExpenseCurrency(e.amount)}</td>
@@ -234,9 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${e.payment_method === 'Bank Check' ? `(${e.bank_check_number}, ${e.bank_name})` : ''}
                     </td>
                     <td>
-                        <button class="btn-primary view-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">View</button>
-                        <button class="btn-secondary edit-btn" style="padding: 5px 10px; font-size: 13px; margin-right: 4px;">Edit</button>
-                        <button class="btn-danger delete-btn" style="padding: 5px 10px; font-size: 13px; background:#e53e3e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Delete</button>
+                        <div class="table-actions">
+                            <button class="action-btn action-view view-btn" title="View"><i class="bi bi-eye-fill"></i></button>
+                            <button class="action-btn action-edit edit-btn" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                            <button class="action-btn action-delete delete-btn" title="Delete"><i class="bi bi-trash-fill"></i></button>
+                        </div>
                     </td>
                 `;
 
